@@ -1,193 +1,165 @@
 import { useState } from 'react';
+import { GlobalMarketHeader } from './components/GlobalMarketHeader';
 import { Navbar } from './components/Navbar';
-import { Hero } from './components/Hero';
-import { LatticeCanvas } from './components/LatticeCanvas';
-import { IcoPresale } from './components/IcoPresale';
-import { EllipticCurveVisualizer } from './components/EllipticCurveVisualizer';
-import { LatticeVisualizer } from './components/LatticeVisualizer';
-import { ZKLab } from './components/ZKLab';
-import { CypherSuite } from './components/CypherSuite';
-import { QuestArena } from './components/QuestArena';
-import { ConstellationTimeline } from './components/ConstellationTimeline';
+import { MarketHighlights } from './components/MarketHighlights';
+import { CryptoTable } from './components/CryptoTable';
+import { TokenDetailModal } from './components/TokenDetailModal';
+import { IcoDropsRadar } from './components/IcoDropsRadar';
+import { TrendingMoversView } from './components/TrendingMoversView';
+import { CoinDeskNews } from './components/CoinDeskNews';
+import { PortfolioWatchlist } from './components/PortfolioWatchlist';
+import { CryptoConverter } from './components/CryptoConverter';
 import { Footer } from './components/Footer';
-import { Sparkles, Layers } from 'lucide-react';
+import { cryptoTokens, type CryptoToken } from './data/cryptoData';
 import { cypherSound } from './lib/crypto-utils';
 
 export function App() {
-  const [activeSection, setActiveSection] = useState<string>('hero');
-  const [holodeckTab, setHolodeckTab] = useState<'ecc' | 'lattice'>('ecc');
+  const [activeTab, setActiveTab] = useState<string>('markets');
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('USD');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string>('');
 
-  const scrollToSection = (id: string) => {
-    setActiveSection(id);
-    if (id === 'hero') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+  // Watchlist stored in localStorage
+  const [watchlist, setWatchlist] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('encryptoverse_watchlist');
+      return saved ? JSON.parse(saved) : ['bitcoin', 'ethereum', 'solana', 'bittensor'];
+    } catch {
+      return ['bitcoin', 'ethereum', 'solana', 'bittensor'];
     }
-    const element = document.getElementById(id);
-    if (element) {
-      const yOffset = -75;
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
+  });
+
+  const handleToggleWatchlist = (tokenId: string) => {
+    let next: string[];
+    if (watchlist.includes(tokenId)) {
+      next = watchlist.filter((id) => id !== tokenId);
+    } else {
+      next = [...watchlist, tokenId];
+    }
+    setWatchlist(next);
+    try {
+      localStorage.setItem('encryptoverse_watchlist', JSON.stringify(next));
+    } catch {
+      // Storage fallback
     }
   };
 
+  const handleConnectWallet = () => {
+    cypherSound.playBlip(750, 'triangle');
+    if (!walletAddress) {
+      const mockAddr = '0x' + Array.from(window.crypto.getRandomValues(new Uint8Array(20)))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+      setWalletAddress(mockAddr.slice(0, 6) + '...' + mockAddr.slice(-4));
+    } else {
+      setWalletAddress('');
+    }
+  };
+
+  // Search filtering
+  const displayedTokens = cryptoTokens.filter((t) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      t.name.toLowerCase().includes(q) ||
+      t.symbol.toLowerCase().includes(q) ||
+      t.category.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 relative selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* Background Interactive Lattice */}
-      <LatticeCanvas />
+    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
+      {/* 1. CoinMarketCap/CoinGecko Top Ticker Bar */}
+      <GlobalMarketHeader
+        selectedCurrency={selectedCurrency}
+        onCurrencyChange={setSelectedCurrency}
+      />
 
-      {/* Persistent Navigation */}
-      <Navbar activeSection={activeSection} onNavigate={scrollToSection} />
+      {/* 2. Main Navigation Bar */}
+      <Navbar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        watchlistCount={watchlist.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onConnectWallet={handleConnectWallet}
+        walletAddress={walletAddress}
+      />
 
-      <main className="relative z-10">
-        {/* Hero Section with Live Cypher Input */}
-        <div id="hero">
-          <Hero onExplore={scrollToSection} />
-        </div>
+      {/* 3. Main Content Router */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+        {/* View: Markets (Default Home) */}
+        {activeTab === 'markets' && (
+          <div className="space-y-6">
+            {/* Highlights row */}
+            <MarketHighlights
+              onSelectToken={(tokenId) => {
+                const found = cryptoTokens.find((t) => t.id === tokenId);
+                if (found) setSelectedToken(found);
+              }}
+              onSelectIco={() => setActiveTab('icodrops')}
+            />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-24 pt-6">
-          {/* SECTION: TOKEN ICO / PRESALE */}
-          <section id="ico" className="scroll-mt-24 space-y-6">
-            <IcoPresale />
-          </section>
-
-          {/* SECTION 1: THE HOLODECK (Interactive Visualizers) */}
-          <section id="holodeck" className="scroll-mt-24 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400">
-                    Pillar 01
-                  </span>
+            {/* Cryptocurrencies Table */}
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div>
+                  <h1 className="text-xl font-extrabold text-white">
+                    Top Cryptocurrency Prices by Market Cap
+                  </h1>
+                  <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                    Live market data, 24h trading volume, circulating supply, and 7-day sparklines.
+                  </p>
                 </div>
-                <h2 className="text-3xl font-extrabold text-white mt-1">
-                  The Cryptography Holodeck
-                </h2>
-                <p className="text-sm text-slate-400 font-mono">
-                  Interactive mathematical simulations rendered in 60fps canvas.
-                </p>
               </div>
 
-              {/* Sub-tab switcher: ECC vs Lattice */}
-              <div className="flex p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono">
-                <button
-                  onClick={() => {
-                    setHolodeckTab('ecc');
-                    cypherSound.playBlip(600);
-                  }}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition ${
-                    holodeckTab === 'ecc'
-                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  Elliptic Curves (ECC)
-                </button>
-                <button
-                  onClick={() => {
-                    setHolodeckTab('lattice');
-                    cypherSound.playBlip(600);
-                  }}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition ${
-                    holodeckTab === 'lattice'
-                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5 text-purple-400" />
-                  Post-Quantum Lattice (LWE)
-                </button>
-              </div>
+              <CryptoTable
+                tokens={displayedTokens}
+                watchlist={watchlist}
+                onToggleWatchlist={handleToggleWatchlist}
+                onSelectToken={setSelectedToken}
+              />
             </div>
+          </div>
+        )}
 
-            {holodeckTab === 'ecc' ? <EllipticCurveVisualizer /> : <LatticeVisualizer />}
-          </section>
+        {/* View: ICO Drops & Launchpad */}
+        {activeTab === 'icodrops' && <IcoDropsRadar />}
 
-          {/* SECTION 2: ZERO-KNOWLEDGE LAB */}
-          <section id="zklab" className="scroll-mt-24 space-y-6">
-            <div className="border-b border-slate-800/80 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
-                  Pillar 02
-                </span>
-              </div>
-              <h2 className="text-3xl font-extrabold text-white mt-1">
-                The Zero-Knowledge (ZK) Lab
-              </h2>
-              <p className="text-sm text-slate-400 font-mono">
-                Real-time interactive Sigma proof simulation. Prove truth without revealing secrets.
-              </p>
-            </div>
+        {/* View: Trending & Movers */}
+        {activeTab === 'trending' && (
+          <TrendingMoversView onSelectToken={setSelectedToken} />
+        )}
 
-            <ZKLab />
-          </section>
+        {/* View: Watchlist & Portfolio */}
+        {activeTab === 'watchlist' && (
+          <PortfolioWatchlist
+            watchlist={watchlist}
+            tokens={cryptoTokens}
+            onToggleWatchlist={handleToggleWatchlist}
+            onSelectToken={setSelectedToken}
+          />
+        )}
 
-          {/* SECTION 3: CYPHER SUITE (100% IN-BROWSER PRIVACY TOOLS) */}
-          <section id="suite" className="scroll-mt-24 space-y-6">
-            <div className="border-b border-slate-800/80 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400">
-                  Pillar 03
-                </span>
-              </div>
-              <h2 className="text-3xl font-extrabold text-white mt-1">
-                The Cypherpunk Privacy Suite
-              </h2>
-              <p className="text-sm text-slate-400 font-mono">
-                Hardware-accelerated client-side WebCrypto. Zero tracking, zero telemetry.
-              </p>
-            </div>
+        {/* View: CoinDesk News */}
+        {activeTab === 'news' && <CoinDeskNews />}
 
-            <CypherSuite />
-          </section>
-
-          {/* SECTION 4: CTF QUESTS */}
-          <section id="quests" className="scroll-mt-24 space-y-6">
-            <div className="border-b border-slate-800/80 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
-                  Pillar 04
-                </span>
-              </div>
-              <h2 className="text-3xl font-extrabold text-white mt-1">
-                The Cryptoverse Quests
-              </h2>
-              <p className="text-sm text-slate-400 font-mono">
-                Learn cryptanalysis hands-on. Break rotational shifts, mine PoW hashes, and exploit flawed nonces.
-              </p>
-            </div>
-
-            <QuestArena />
-          </section>
-
-          {/* SECTION 5: CHRONICLES & TIMELINE */}
-          <section id="timeline" className="scroll-mt-24 space-y-6">
-            <div className="border-b border-slate-800/80 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-indigo-400">
-                  Chronicles
-                </span>
-              </div>
-              <h2 className="text-3xl font-extrabold text-white mt-1">
-                The Evolution of Cryptography
-              </h2>
-              <p className="text-sm text-slate-400 font-mono">
-                From ancient Spartan Scytales to Post-Quantum Lattice grids.
-              </p>
-            </div>
-
-            <ConstellationTimeline />
-          </section>
-        </div>
+        {/* View: Converter */}
+        {activeTab === 'converter' && <CryptoConverter />}
       </main>
 
-      {/* Footer with Eric Hughes Cypherpunk Manifesto & Open Source Links */}
+      {/* In-Depth Token Modal (CoinGecko / CoinDesk style) */}
+      {selectedToken && (
+        <TokenDetailModal
+          token={selectedToken}
+          onClose={() => setSelectedToken(null)}
+          isWatchlisted={watchlist.includes(selectedToken.id)}
+          onToggleWatchlist={handleToggleWatchlist}
+        />
+      )}
+
+      {/* Footer */}
       <Footer />
     </div>
   );

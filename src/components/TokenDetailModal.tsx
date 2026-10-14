@@ -1,0 +1,287 @@
+import React, { useState } from 'react';
+import {
+  X,
+  Star,
+  ExternalLink,
+  TrendingUp,
+  TrendingDown,
+  Globe,
+  Share2,
+  Check
+} from 'lucide-react';
+import type { CryptoToken } from '../data/cryptoData';
+import { cypherSound } from '../lib/crypto-utils';
+
+interface TokenDetailModalProps {
+  token: CryptoToken | null;
+  onClose: () => void;
+  isWatchlisted: boolean;
+  onToggleWatchlist: (tokenId: string) => void;
+}
+
+export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
+  token,
+  onClose,
+  isWatchlisted,
+  onToggleWatchlist,
+}) => {
+  const [timeRange, setTimeRange] = useState<'1D' | '7D' | '1M' | '1Y' | 'ALL'>('7D');
+  const [hoveredPrice, setHoveredPrice] = useState<number | null>(null);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+
+  if (!token) return null;
+
+  // Multiplier mock points for different timeframes
+  const timeMultipliers = {
+    '1D': [0.985, 0.99, 1.01, 1.005, 0.995, 1.015, 1.0],
+    '7D': [0.93, 0.95, 0.98, 0.96, 0.99, 1.02, 1.0],
+    '1M': [0.85, 0.91, 0.88, 0.95, 1.04, 0.98, 1.0],
+    '1Y': [0.45, 0.60, 0.75, 0.70, 0.88, 0.95, 1.0],
+    ALL: [0.05, 0.15, 0.40, 0.65, 0.80, 0.92, 1.0],
+  };
+
+  const chartData = timeMultipliers[timeRange].map((m) => token.price * m);
+  const minVal = Math.min(...chartData);
+  const maxVal = Math.max(...chartData);
+  const range = maxVal - minVal || 1;
+
+  const width = 680;
+  const height = 240;
+
+  const pointsCoords = chartData.map((val, idx) => {
+    const x = (idx / (chartData.length - 1)) * (width - 40) + 20;
+    const y = height - 30 - ((val - minVal) / range) * (height - 60);
+    return { x, y, val };
+  });
+
+  const polylineStr = pointsCoords.map((p) => `${p.x},${p.y}`).join(' ');
+  const areaPath = `${pointsCoords[0].x},${height} ${polylineStr} ${
+    pointsCoords[pointsCoords.length - 1].x
+  },${height}`;
+
+  const isPositive = token.change24h >= 0;
+  const strokeColor = isPositive ? '#10b981' : '#f43f5e';
+  const fillColor = isPositive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(244, 63, 94, 0.12)';
+
+  const athDrop = (((token.price - token.ath) / token.ath) * 100).toFixed(1);
+  const atlGain = (((token.price - token.atl) / token.atl) * 100).toFixed(0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#090b11] border border-slate-800 shadow-2xl p-6 font-mono text-xs space-y-6">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Modal Header */}
+        <div className="flex flex-wrap items-start justify-between gap-4 pr-10">
+          <div className="flex items-center gap-3">
+            <img src={token.icon} alt={token.name} className="w-10 h-10 rounded-full" />
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-extrabold text-white">{token.name}</h3>
+                <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold uppercase">
+                  {token.symbol}
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                  Rank #{token.rank}
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Category: {token.category}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Watchlist toggle */}
+            <button
+              onClick={() => {
+                onToggleWatchlist(token.id);
+                cypherSound.playBlip(750);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition ${
+                isWatchlisted
+                  ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300 font-bold'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+              }`}
+            >
+              <Star className={`w-3.5 h-3.5 ${isWatchlisted ? 'fill-yellow-400' : ''}`} />
+              <span>{isWatchlisted ? 'Watchlisted' : 'Add to Watchlist'}</span>
+            </button>
+
+            {/* Share link */}
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                setCopiedLink(true);
+                setTimeout(() => setCopiedLink(false), 2000);
+              }}
+              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+            >
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Live Price Display & 24h High/Low */}
+        <div className="flex flex-wrap items-baseline justify-between gap-4 p-4 rounded-xl bg-slate-950/80 border border-slate-800/80">
+          <div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-white">
+              {token.price < 0.01
+                ? `$${token.price.toFixed(8)}`
+                : `$${(hoveredPrice || token.price).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`}
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span
+                className={`font-bold text-xs flex items-center ${
+                  isPositive ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+              >
+                {isPositive ? <TrendingUp className="w-3.5 h-3.5 mr-1" /> : <TrendingDown className="w-3.5 h-3.5 mr-1" />}
+                {isPositive ? '+' : ''}
+                {token.change24h}% (24h)
+              </span>
+              <span className="text-slate-500 text-[11px]">|</span>
+              <span className="text-slate-400 text-[11px]">7d: {token.change7d >= 0 ? '+' : ''}{token.change7d}%</span>
+            </div>
+          </div>
+
+          <div className="text-right text-[11px] text-slate-400 space-y-1">
+            <div>Market Cap: <strong className="text-white">${(token.marketCap / 1e9).toFixed(2)}B</strong></div>
+            <div>24h Volume: <strong className="text-white">${(token.volume24h / 1e6).toFixed(1)}M</strong></div>
+          </div>
+        </div>
+
+        {/* Interactive SVG Price Chart */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+              Price Performance Chart ({timeRange})
+            </span>
+
+            {/* Timeframe Buttons */}
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[11px]">
+              {(['1D', '7D', '1M', '1Y', 'ALL'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setTimeRange(t);
+                    cypherSound.playBlip(550, 'sine', 0.03);
+                  }}
+                  className={`px-2 py-0.5 rounded transition ${
+                    timeRange === t
+                      ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* SVG Canvas Area */}
+          <div className="w-full bg-[#05070b] border border-slate-800/80 rounded-xl p-3 relative overflow-hidden">
+            <svg
+              viewBox={`0 0 ${width} ${height}`}
+              className="w-full h-48 overflow-visible"
+              onMouseLeave={() => setHoveredPrice(null)}
+            >
+              {/* Horizontal guide lines */}
+              <line x1="0" y1={height / 4} x2={width} y2={height / 4} stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
+              <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
+              <line x1="0" y1={(3 * height) / 4} x2={width} y2={(3 * height) / 4} stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
+
+              {/* Area polygon */}
+              <polygon points={areaPath} fill={fillColor} />
+
+              {/* Line path */}
+              <polyline
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={polylineStr}
+              />
+
+              {/* Hoverable points */}
+              {pointsCoords.map((p, i) => (
+                <circle
+                  key={i}
+                  cx={p.x}
+                  cy={p.y}
+                  r="4"
+                  fill="#fff"
+                  stroke={strokeColor}
+                  strokeWidth="2"
+                  className="cursor-pointer hover:r-6 transition"
+                  onMouseEnter={() => setHoveredPrice(p.val)}
+                />
+              ))}
+            </svg>
+          </div>
+        </div>
+
+        {/* Detailed Metrics Grid (CoinGecko / CoinDesk style) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+            <div className="text-[10px] text-slate-500 uppercase">Circulating Supply</div>
+            <div className="font-bold text-slate-200 mt-0.5">
+              {token.circulatingSupply.toLocaleString()} {token.symbol}
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+            <div className="text-[10px] text-slate-500 uppercase">Max Supply</div>
+            <div className="font-bold text-slate-200 mt-0.5">
+              {token.maxSupply ? `${token.maxSupply.toLocaleString()} ${token.symbol}` : 'Infinite'}
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+            <div className="text-[10px] text-slate-500 uppercase">All-Time High (ATH)</div>
+            <div className="font-bold text-slate-200 mt-0.5">${token.ath.toLocaleString()}</div>
+            <div className="text-[10px] text-rose-400">{athDrop}% ({token.athDate})</div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+            <div className="text-[10px] text-slate-500 uppercase">All-Time Low (ATL)</div>
+            <div className="font-bold text-slate-200 mt-0.5">${token.atl.toLocaleString()}</div>
+            <div className="text-[10px] text-emerald-400">+{atlGain}% ({token.atlDate})</div>
+          </div>
+        </div>
+
+        {/* Description & Links */}
+        <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
+          <div className="text-xs font-bold text-white uppercase tracking-wider">About {token.name}</div>
+          <p className="text-slate-400 leading-relaxed text-[11px]">{token.description}</p>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <a
+              href={token.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-cyan-400 hover:underline flex items-center gap-1"
+            >
+              <Globe className="w-3 h-3" /> Website
+            </a>
+            <a
+              href={token.explorer}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-cyan-400 hover:underline flex items-center gap-1"
+            >
+              <ExternalLink className="w-3 h-3" /> Blockchain Explorer
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,55 +1,59 @@
 import React from 'react';
-import { Lock, Shield, Terminal } from 'lucide-react';
+import { Layers } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="mt-24 border-t border-slate-800/80 bg-[#05070b] relative z-10 font-mono text-xs text-slate-400">
+    <footer className="mt-20 border-t border-slate-800 bg-[#05070b] font-mono text-xs text-slate-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-        {/* Quote banner */}
-        <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/80 relative overflow-hidden">
-          <div className="max-w-3xl space-y-2">
-            <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <Terminal className="w-3.5 h-3.5" /> A Cypherpunk's Manifesto (Eric Hughes, 1993)
-            </div>
-            <p className="text-slate-300 italic text-xs sm:text-sm leading-relaxed">
-              "Privacy is necessary for an open society in the electronic age... We cannot expect governments, corporations, or other large, faceless organizations to grant us privacy... We must defend our own privacy if we expect to have any. We the Cypherpunks are dedicated to building anonymous systems."
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-4">
-          <div className="space-y-3 md:col-span-2">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+          {/* Brand Info (2 cols) */}
+          <div className="md:col-span-2 space-y-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
-                <Lock className="w-3.5 h-3.5 text-cyan-400" />
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center">
+                <Layers className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-white text-sm">ENCRYPTOVERSE</span>
+              <span className="font-extrabold text-white text-base">ENCRYPTOVERSE</span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed max-w-sm">
-              The open-source interactive universe dedicated to demystifying modern cryptography, zero-knowledge proofs, and post-quantum security.
+              The premier all-in-one crypto market intelligence, price analytics, and verified ICO/IDO launchpad radar.
             </p>
-            <div className="flex items-center gap-2 text-emerald-400 text-[11px]">
-              <Shield className="w-3.5 h-3.5" />
-              <span>100% Client-Side Computing · Zero Server Logging</span>
+            <div className="text-[11px] text-slate-500">
+              Inspired by the depth of CoinMarketCap, CoinGecko, CoinDesk Price, and ICO Drops.
             </div>
           </div>
 
+          {/* Products */}
           <div className="space-y-2">
             <div className="text-white font-bold uppercase tracking-wider text-[11px]">
-              Standards & Primitives
+              Market Data
             </div>
             <ul className="space-y-1.5 text-slate-400 text-xs">
-              <li>NIST FIPS 203 (ML-KEM / Kyber)</li>
-              <li>NIST FIPS 204 (ML-DSA / Dilithium)</li>
-              <li>RFC 8439 (ChaCha20-Poly1305)</li>
-              <li>NIST SP 800-38D (AES-GCM)</li>
-              <li>SEC 2: Recommended Elliptic Curves</li>
+              <li>Cryptocurrencies (Top 100)</li>
+              <li>Market Capitalization</li>
+              <li>24h Volume & Liquidity</li>
+              <li>Fear & Greed Index</li>
+              <li>Gas Price Tracker</li>
             </ul>
           </div>
 
+          {/* ICO Launchpad */}
           <div className="space-y-2">
             <div className="text-white font-bold uppercase tracking-wider text-[11px]">
-              Open Source
+              ICO Drops Radar
+            </div>
+            <ul className="space-y-1.5 text-slate-400 text-xs">
+              <li>Active Token Presales</li>
+              <li>Upcoming Whitelists</li>
+              <li>Ended ICOs & Historical ROI</li>
+              <li>Multi-Chain IDOs</li>
+              <li>Tokenomics & Vesting</li>
+            </ul>
+          </div>
+
+          {/* Open Source & Links */}
+          <div className="space-y-2">
+            <div className="text-white font-bold uppercase tracking-wider text-[11px]">
+              Ecosystem
             </div>
             <ul className="space-y-1.5 text-slate-400 text-xs">
               <li>
@@ -65,18 +69,20 @@ export const Footer: React.FC = () => {
                   GitHub Repository
                 </a>
               </li>
-              <li>MIT License</li>
-              <li>WebAssembly & WebCrypto Core</li>
+              <li>Portfolio Tracker</li>
+              <li>Crypto Price Converter</li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
-          <div>
-            © 2026 Encryptoverse. Built for cypherpunks, builders & explorers.
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Secured with open mathematical truths</span>
+        {/* Disclaimer & Copyright */}
+        <div className="pt-6 border-t border-slate-800/80 space-y-2 text-[10px] text-slate-500 leading-relaxed">
+          <p>
+            <strong>Disclaimer:</strong> Content published on Encryptoverse is provided for general informational and educational purposes only. None of the price data, token evaluations, or ICO information constitutes financial, investment, or legal advice. Cryptocurrencies and token presales carry substantial market volatility and risk.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2">
+            <div>© 2026 Encryptoverse. All rights reserved.</div>
+            <div>Built for the global Web3 community</div>
           </div>
         </div>
       </div>

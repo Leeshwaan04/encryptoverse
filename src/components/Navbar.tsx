@@ -1,145 +1,179 @@
 import React, { useState } from 'react';
 import {
-  Volume2,
-  VolumeX,
-  Lock,
+  TrendingUp,
+  Search,
+  Star,
+  Rocket,
+  Newspaper,
+  Calculator,
+  Wallet,
   Menu,
-  X
+  X,
+  Flame,
+  Layers
 } from 'lucide-react';
 import { cypherSound } from '../lib/crypto-utils';
 
 interface NavbarProps {
-  activeSection: string;
-  onNavigate: (sectionId: string) => void;
+  activeTab: string;
+  onSelectTab: (tab: string) => void;
+  watchlistCount: number;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  onConnectWallet: () => void;
+  walletAddress: string;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => {
-  const [soundOn, setSoundOn] = useState<boolean>(true);
+export const Navbar: React.FC<NavbarProps> = ({
+  activeTab,
+  onSelectTab,
+  watchlistCount,
+  searchQuery,
+  onSearchChange,
+  onConnectWallet,
+  walletAddress,
+}) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
-  const toggleSound = () => {
-    const next = !soundOn;
-    setSoundOn(next);
-    cypherSound.enabled = next;
-    if (next) {
-      cypherSound.playBlip(880, 'sine', 0.05);
-    }
-  };
-
   const navItems = [
-    { id: 'ico', label: '$ECV Token ICO', isLive: true },
-    { id: 'holodeck', label: 'The Holodeck' },
-    { id: 'zklab', label: 'ZK Lab' },
-    { id: 'suite', label: 'Cypher Suite' },
-    { id: 'quests', label: 'CTF Quests' },
-    { id: 'timeline', label: 'Chronicles' },
+    { id: 'markets', label: 'Cryptocurrencies', icon: <TrendingUp className="w-3.5 h-3.5" /> },
+    { id: 'icodrops', label: 'ICO Drops & Launchpad', icon: <Rocket className="w-3.5 h-3.5 text-amber-400" />, badge: 'HOT' },
+    { id: 'trending', label: 'Trending & Gainers', icon: <Flame className="w-3.5 h-3.5 text-rose-400" /> },
+    { id: 'watchlist', label: 'Watchlist', icon: <Star className="w-3.5 h-3.5 text-yellow-400" />, count: watchlistCount },
+    { id: 'news', label: 'CoinDesk News', icon: <Newspaper className="w-3.5 h-3.5 text-cyan-400" /> },
+    { id: 'converter', label: 'Converter', icon: <Calculator className="w-3.5 h-3.5 text-indigo-400" /> },
   ];
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#07090e]/85 border-b border-slate-800/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand / Logo */}
+    <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#07090e]/90 border-b border-slate-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        {/* Brand Logo */}
         <div
           onClick={() => {
-            onNavigate('hero');
+            onSelectTab('markets');
             cypherSound.playBlip(520);
           }}
-          className="flex items-center gap-3 cursor-pointer group"
+          className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 p-[1.5px] shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-400/40 transition">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 p-[1.5px] shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-400/40 transition">
             <div className="w-full h-full bg-[#07090e] rounded-[10px] flex items-center justify-center">
-              <Lock className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition duration-300" />
+              <Layers className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition duration-300" />
             </div>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold tracking-wider text-base bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent font-mono">
+              <span className="font-extrabold tracking-wider text-base bg-gradient-to-r from-white via-slate-100 to-cyan-300 bg-clip-text text-transparent font-mono">
                 ENCRYPTOVERSE
               </span>
-              <span className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                v1.0
+              <span className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                PRO
               </span>
             </div>
             <div className="text-[10px] font-mono text-slate-500 -mt-0.5 tracking-tight hidden sm:block">
-              Interactive Cryptography & Zero-Knowledge
+              Market Intelligence & ICO Launchpad
             </div>
           </div>
         </div>
 
         {/* Desktop Nav Items */}
-        <nav className="hidden md:flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80 font-mono text-xs">
+        <nav className="hidden lg:flex items-center gap-1 font-mono text-xs">
           {navItems.map((item) => {
-            const isActive = activeSection === item.id;
+            const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => {
-                  onNavigate(item.id);
+                  onSelectTab(item.id);
                   cypherSound.playBlip(640, 'sine', 0.04);
                 }}
                 className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
                   isActive
-                    ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                    ? 'bg-cyan-500/15 text-cyan-300 font-bold border border-cyan-500/30 shadow-sm shadow-cyan-500/10'
                     : 'text-slate-400 hover:text-white hover:bg-slate-900'
                 }`}
               >
-                {item.isLive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+                {item.icon}
+                <span>{item.label}</span>
+                {item.badge && (
+                  <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    {item.badge}
+                  </span>
                 )}
-                {item.label}
+                {typeof item.count === 'number' && item.count > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300">
+                    {item.count}
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
 
-        {/* Right Tools (Sound, GitHub, Status) */}
+        {/* Search Bar & Connect Wallet */}
         <div className="flex items-center gap-2.5">
-          {/* Sound Toggle */}
+          {/* Quick Search */}
+          <div className="relative hidden sm:block w-44 md:w-56">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search coin or ICO..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 font-mono text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 transition"
+            />
+          </div>
+
+          {/* Wallet / Portfolio Connect */}
           <button
-            onClick={toggleSound}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-cyan-400 transition"
-            title={soundOn ? 'Mute SFX' : 'Enable SFX'}
+            onClick={onConnectWallet}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-mono text-xs font-bold transition shadow-md shadow-cyan-500/20 shrink-0"
           >
-            {soundOn ? <Volume2 className="w-4 h-4 text-cyan-400" /> : <VolumeX className="w-4 h-4" />}
+            <Wallet className="w-3.5 h-3.5" />
+            <span>{walletAddress ? walletAddress : 'Connect'}</span>
           </button>
 
-          {/* GitHub Repo */}
-          <a
-            href="https://github.com/Leeshwaan04/encryptoverse"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-mono text-slate-200 transition"
-          >
-            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-              <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-            </svg>
-            <span className="hidden sm:inline">GitHub</span>
-          </a>
-
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300"
+            className="lg:hidden p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#07090e] border-b border-slate-800 px-4 py-3 space-y-1">
+        <div className="lg:hidden bg-[#07090e] border-b border-slate-800 px-4 py-3 space-y-2 font-mono text-xs">
+          <div className="relative w-full mb-3">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search coins or ICOs..."
+              className="w-full pl-8 pr-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
+            />
+          </div>
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => {
-                onNavigate(item.id);
+                onSelectTab(item.id);
                 setMobileMenuOpen(false);
                 cypherSound.playBlip(640);
               }}
-              className="w-full text-left px-3 py-2 rounded-lg font-mono text-xs text-slate-300 hover:bg-slate-900"
+              className="w-full text-left px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-900 flex items-center justify-between"
             >
-              {item.label}
+              <div className="flex items-center gap-2">
+                {item.icon}
+                <span>{item.label}</span>
+              </div>
+              {item.badge && (
+                <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-500/20 text-amber-300">
+                  {item.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
