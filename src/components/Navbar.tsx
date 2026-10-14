@@ -22,6 +22,7 @@ interface NavbarProps {
   onSearchChange: (query: string) => void;
   onConnectWallet: () => void;
   walletAddress: string;
+  network?: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -32,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSearchChange,
   onConnectWallet,
   walletAddress,
+  network,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
@@ -44,8 +46,14 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'converter', label: 'Converter', icon: <Calculator className="w-3.5 h-3.5 text-indigo-400" /> },
   ];
 
+  const formattedAddress = walletAddress
+    ? walletAddress.length > 13
+      ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+      : walletAddress
+    : null;
+
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#07090e]/90 border-b border-slate-800">
+    <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#07090e]/90 border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <div
@@ -126,10 +134,28 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Wallet / Portfolio Connect */}
           <button
             onClick={onConnectWallet}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-mono text-xs font-bold transition shadow-md shadow-cyan-500/20 shrink-0"
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition shadow-md shrink-0 border ${
+              formattedAddress
+                ? 'bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border-cyan-500/40 shadow-cyan-500/10'
+                : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white border-transparent shadow-cyan-500/20'
+            }`}
           >
-            <Wallet className="w-3.5 h-3.5" />
-            <span>{walletAddress ? walletAddress : 'Connect'}</span>
+            {formattedAddress ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{formattedAddress}</span>
+                {network && (
+                  <span className="hidden xl:inline text-[9px] font-normal px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-200">
+                    {network.split(' ')[0]}
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <Wallet className="w-3.5 h-3.5" />
+                <span>Connect Wallet</span>
+              </>
+            )}
           </button>
 
           {/* Mobile Menu Toggle */}

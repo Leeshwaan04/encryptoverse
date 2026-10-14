@@ -5,22 +5,26 @@ import {
   Rocket,
   Activity
 } from 'lucide-react';
-import { cryptoTokens, icoProjects, globalMarketStats } from '../data/cryptoData';
+import { cryptoTokens, icoProjects, globalMarketStats, type CryptoToken } from '../data/cryptoData';
 
 interface MarketHighlightsProps {
   onSelectToken: (tokenId: string) => void;
   onSelectIco: (icoId: string) => void;
+  tokens?: CryptoToken[];
 }
 
 export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
   onSelectToken,
   onSelectIco,
+  tokens = cryptoTokens,
 }) => {
+  const sourceTokens = tokens.length > 0 ? tokens : cryptoTokens;
+
   // Top 3 trending
-  const trending = [cryptoTokens[0], cryptoTokens[2], cryptoTokens[4]];
+  const trending = [sourceTokens[0], sourceTokens[2] || sourceTokens[0], sourceTokens[4] || sourceTokens[1]];
 
   // Top gainers (sorted by change24h desc)
-  const topGainers = [...cryptoTokens].sort((a, b) => b.change24h - a.change24h).slice(0, 3);
+  const topGainers = [...sourceTokens].sort((a, b) => b.change24h - a.change24h).slice(0, 3);
 
   // Spotlight active ICO
   const spotlightIco = icoProjects[0];

@@ -7,6 +7,7 @@
 [![Vite](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
 [![React](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
 [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC.svg)](https://tailwindcss.com/)
+[![CI](https://github.com/Leeshwaan04/encryptoverse/actions/workflows/ci.yml/badge.svg)](https://github.com/Leeshwaan04/encryptoverse/actions)
 
 ---
 
@@ -15,15 +16,17 @@
 Encryptoverse brings together the best capabilities of the top four crypto market portals into a single, unified, ultra-fast web application:
 
 1. **CoinMarketCap:** Real-time top cryptocurrency prices, 24h trading volume, circulating supply, market capitalization rankings, and 7-day sparkline charts.
-2. **CoinGecko:** Deep token analytics, Category filters (Layer 1, Layer 2, AI & Big Data, DeFi, Meme, DePIN, RWA), All-Time High (ATH) and All-Time Low (ATL) metrics.
+2. **CoinGecko:** Deep token analytics, Category filters (Layer 1, Layer 2, AI & Big Data, DeFi, Meme, DePIN, RWA), All-Time High (ATH) and All-Time Low (ATL) metrics, and real-time public market API integration with client-side caching.
 3. **CoinDesk Price & News:** Real-time macroeconomic news wire, Bitcoin ETF flow tracking, market sentiment analysis, and interactive timeframe price charts (1D, 7D, 1M, 1Y, ALL).
 4. **ICO Drops:** Comprehensive Web3 launchpad radar tracking Active Presales, Upcoming Whitelists, and Ended IDO/IEO offerings with historical ROI multipliers.
+5. **Web3 Multi-Wallet Connection:** Seamlessly connect MetaMask, Phantom, Coinbase Wallet, Rabby, or explore instantly with Sandbox Demo mode.
 
 ---
 
 ## 🚀 Core Features & Modules
 
 ### 1. 🌐 Global Market Ticker (Top Header Bar)
+- **Live CoinGecko Feed & Offline Fallback:** Live status badge indicating API connection, client cache status, and manual refresh controls.
 - **Global Market Cap:** Real-time market capitalization with 24h percentage movement.
 - **24h Trading Volume:** Aggregated exchange volume.
 - **Bitcoin & Ethereum Dominance:** Live dominance percentages.
@@ -50,15 +53,21 @@ Encryptoverse brings together the best capabilities of the top four crypto marke
 - **Ended ICOs & Historical ROI:** Track past launches and all-time return on investment (e.g., 8.2x USD ROI).
 - **Multi-Chain Filtering:** Filter token offerings by Ethereum, Solana, Base, BNB Chain, Sui, and Arbitrum.
 
-### 5. 📰 CoinDesk Market Wire & News
+### 5. 🦊 Web3 Wallet Modal & Manager
+- **Multi-Provider Support:** Detects and connects to MetaMask, Phantom, Coinbase Wallet, and Rabby.
+- **Sandbox Demo Wallet:** Instant 1-click test wallet with simulated test assets for immediate hands-on exploration.
+- **Network Switcher:** Switch between Ethereum, Arbitrum One, Base, Optimism, and Solana Mainnet.
+- **Account Dashboard:** Copy address, view on block explorer, and one-click disconnect.
+
+### 6. 📰 CoinDesk Market Wire & News
 - Breaking market headlines, regulatory policies, institutional inflows, and sector shifts.
 - Sentiment indicators (Bullish, Neutral, Bearish) and direct source links.
 
-### 6. ⭐ Watchlist & Portfolio Tracker
-- Manage favorite cryptocurrencies stored privately in your browser's local storage.
+### 7. ⭐ Watchlist & Portfolio Tracker
+- Manage favorite cryptocurrencies stored privately in your browser local storage.
 - Optional portfolio mode: input your token holdings to calculate total portfolio net worth and 24h profit and loss.
 
-### 7. 💱 Crypto Converter & Calculator
+### 8. 💱 Crypto Converter & Calculator
 - Instant multi-asset exchange calculator between cryptocurrencies and fiat currencies.
 
 ---
@@ -85,11 +94,14 @@ npm run dev
 
 Open `http://localhost:5173` in your browser.
 
-### Production Build
+### Quality Assurance & Linting
 
 ```bash
+# Fast Oxlint code analysis (0 errors, 0 warnings)
+npm run lint
+
+# TypeScript verification & Production build
 npm run build
-npm run preview
 ```
 
 ---

@@ -8,17 +8,30 @@ import { cryptoTokens, type CryptoToken } from '../data/cryptoData';
 
 interface TrendingMoversViewProps {
   onSelectToken: (token: CryptoToken) => void;
+  tokens?: CryptoToken[];
 }
 
-export const TrendingMoversView: React.FC<TrendingMoversViewProps> = ({ onSelectToken }) => {
+export const TrendingMoversView: React.FC<TrendingMoversViewProps> = ({
+  onSelectToken,
+  tokens = cryptoTokens,
+}) => {
+  const source = tokens.length > 0 ? tokens : cryptoTokens;
+
   // Gainers
-  const gainers = [...cryptoTokens].sort((a, b) => b.change24h - a.change24h).slice(0, 6);
+  const gainers = [...source].sort((a, b) => b.change24h - a.change24h).slice(0, 6);
 
   // Losers
-  const losers = [...cryptoTokens].sort((a, b) => a.change24h - b.change24h).slice(0, 6);
+  const losers = [...source].sort((a, b) => a.change24h - b.change24h).slice(0, 6);
 
   // Most visited / Trending
-  const trending = [cryptoTokens[0], cryptoTokens[2], cryptoTokens[5], cryptoTokens[4], cryptoTokens[6], cryptoTokens[1]];
+  const trending = [
+    source[0],
+    source[2] || source[0],
+    source[5] || source[1],
+    source[4] || source[2],
+    source[6] || source[3],
+    source[1] || source[0],
+  ].filter(Boolean);
 
   return (
     <div className="space-y-6 font-mono text-xs">

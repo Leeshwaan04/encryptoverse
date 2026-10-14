@@ -3,16 +3,21 @@ import {
   ArrowDownUp,
   Calculator
 } from 'lucide-react';
-import { cryptoTokens } from '../data/cryptoData';
+import { cryptoTokens, type CryptoToken } from '../data/cryptoData';
 import { cypherSound } from '../lib/crypto-utils';
 
-export const CryptoConverter: React.FC = () => {
+interface CryptoConverterProps {
+  tokens?: CryptoToken[];
+}
+
+export const CryptoConverter: React.FC<CryptoConverterProps> = ({ tokens = cryptoTokens }) => {
+  const sourceTokens = tokens.length > 0 ? tokens : cryptoTokens;
   const [amountFrom, setAmountFrom] = useState<string>('1');
   const [tokenFromId, setTokenFromId] = useState<string>('bitcoin');
   const [tokenToId, setTokenToId] = useState<string>('ethereum');
 
-  const tokenFrom = cryptoTokens.find((t) => t.id === tokenFromId) || cryptoTokens[0];
-  const tokenTo = cryptoTokens.find((t) => t.id === tokenToId) || cryptoTokens[1];
+  const tokenFrom = sourceTokens.find((t) => t.id === tokenFromId) || sourceTokens[0];
+  const tokenTo = sourceTokens.find((t) => t.id === tokenToId) || sourceTokens[1] || sourceTokens[0];
 
   const parsedAmount = Math.max(0, parseFloat(amountFrom) || 0);
   const usdValue = parsedAmount * tokenFrom.price;

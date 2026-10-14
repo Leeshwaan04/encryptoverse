@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GlobalMarketHeader } from './components/GlobalMarketHeader';
 import { Navbar } from './components/Navbar';
 import { MarketHighlights } from './components/MarketHighlights';
@@ -9,16 +9,34 @@ import { TrendingMoversView } from './components/TrendingMoversView';
 import { CoinDeskNews } from './components/CoinDeskNews';
 import { PortfolioWatchlist } from './components/PortfolioWatchlist';
 import { CryptoConverter } from './components/CryptoConverter';
+import { WalletModal } from './components/WalletModal';
 import { Footer } from './components/Footer';
-import { cryptoTokens, type CryptoToken } from './data/cryptoData';
-import { cypherSound } from './lib/crypto-utils';
+import { cryptoTokens, globalMarketStats, type CryptoToken } from './data/cryptoData';
+import {
+  fetchLiveCryptoTokens,
+  fetchLiveGlobalStats,
+  type LiveMarketResult,
+  type GlobalStatsResult,
+} from './services/cryptoApi';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('markets');
   const [selectedCurrency, setSelectedCurrency] = useState<string>('USD');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(null);
+
+  // Live Market & Global Data State
+  const [tokens, setTokens] = useState<CryptoToken[]>(cryptoTokens);
+  const [marketStats, setMarketStats] = useState<typeof globalMarketStats>(globalMarketStats);
+  const [isLiveFeed, setIsLiveFeed] = useState<boolean>(false);
+  const [isCachedFeed, setIsCachedFeed] = useState<boolean>(false);
+  const [isLoadingFeed, setIsLoadingFeed] = useState<boolean>(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(() => new Date());
+
+  // Web3 Wallet Modal & State
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState<boolean>(false);
   const [walletAddress, setWalletAddress] = useState<string>('');
+  const [walletNetwork, setWalletNetwork] = useState<string>('Ethereum Mainnet');
 
   // Watchlist stored in localStorage
   const [watchlist, setWatchlist] = useState<string[]>(() => {
@@ -29,6 +47,64 @@ export function App() {
       return ['bitcoin', 'ethereum', 'solana', 'bittensor'];
     }
   });
+
+  const loadMarketData = useCallback(async (currency: string) => {
+    setIsLoadingFeed(true);
+    try {
+      const [tokenRes, statsRes]: [LiveMarketResult, GlobalStatsResult] = await Promise.all([
+        fetchLiveCryptoTokens(currency),
+        fetchLiveGlobalStats(),
+      ]);
+
+      if (tokenRes.tokens && tokenRes.tokens.length > 0) {
+        setTokens(tokenRes.tokens);
+      }
+      if (statsRes.stats) {
+        setMarketStats(statsRes.stats);
+      }
+      setIsLiveFeed(tokenRes.isLive);
+      setIsCachedFeed(tokenRes.isCached);
+      setLastUpdated(tokenRes.lastUpdated);
+    } catch {
+      // Offline fallback already handled in service
+    } finally {
+      setIsLoadingFeed(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    const run = async () => {
+      setIsLoadingFeed(true);
+      try {
+        const [tokenRes, statsRes]: [LiveMarketResult, GlobalStatsResult] = await Promise.all([
+          fetchLiveCryptoTokens(selectedCurrency),
+          fetchLiveGlobalStats(),
+        ]);
+        if (!ignore) {
+          if (tokenRes.tokens && tokenRes.tokens.length > 0) {
+            setTokens(tokenRes.tokens);
+          }
+          if (statsRes.stats) {
+            setMarketStats(statsRes.stats);
+          }
+          setIsLiveFeed(tokenRes.isLive);
+          setIsCachedFeed(tokenRes.isCached);
+          setLastUpdated(tokenRes.lastUpdated);
+        }
+      } catch {
+        // Fallback handled in service
+      } finally {
+        if (!ignore) {
+          setIsLoadingFeed(false);
+        }
+      }
+    };
+    run();
+    return () => {
+      ignore = true;
+    };
+  }, [selectedCurrency]);
 
   const handleToggleWatchlist = (tokenId: string) => {
     let next: string[];
@@ -45,20 +121,8 @@ export function App() {
     }
   };
 
-  const handleConnectWallet = () => {
-    cypherSound.playBlip(750, 'triangle');
-    if (!walletAddress) {
-      const mockAddr = '0x' + Array.from(window.crypto.getRandomValues(new Uint8Array(20)))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-      setWalletAddress(mockAddr.slice(0, 6) + '...' + mockAddr.slice(-4));
-    } else {
-      setWalletAddress('');
-    }
-  };
-
   // Search filtering
-  const displayedTokens = cryptoTokens.filter((t) => {
+  const displayedTokens = tokens.filter((t) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -74,6 +138,12 @@ export function App() {
       <GlobalMarketHeader
         selectedCurrency={selectedCurrency}
         onCurrencyChange={setSelectedCurrency}
+        stats={marketStats}
+        isLive={isLiveFeed}
+        isCached={isCachedFeed}
+        isLoading={isLoadingFeed}
+        onRefresh={() => loadMarketData(selectedCurrency)}
+        lastUpdated={lastUpdated}
       />
 
       {/* 2. Main Navigation Bar */}
@@ -83,8 +153,9 @@ export function App() {
         watchlistCount={watchlist.length}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onConnectWallet={handleConnectWallet}
+        onConnectWallet={() => setIsWalletModalOpen(true)}
         walletAddress={walletAddress}
+        network={walletNetwork}
       />
 
       {/* 3. Main Content Router */}
@@ -94,8 +165,9 @@ export function App() {
           <div className="space-y-6">
             {/* Highlights row */}
             <MarketHighlights
+              tokens={tokens}
               onSelectToken={(tokenId) => {
-                const found = cryptoTokens.find((t) => t.id === tokenId);
+                const found = tokens.find((t) => t.id === tokenId);
                 if (found) setSelectedToken(found);
               }}
               onSelectIco={() => setActiveTab('icodrops')}
@@ -129,14 +201,14 @@ export function App() {
 
         {/* View: Trending & Movers */}
         {activeTab === 'trending' && (
-          <TrendingMoversView onSelectToken={setSelectedToken} />
+          <TrendingMoversView tokens={tokens} onSelectToken={setSelectedToken} />
         )}
 
         {/* View: Watchlist & Portfolio */}
         {activeTab === 'watchlist' && (
           <PortfolioWatchlist
             watchlist={watchlist}
-            tokens={cryptoTokens}
+            tokens={tokens}
             onToggleWatchlist={handleToggleWatchlist}
             onSelectToken={setSelectedToken}
           />
@@ -146,7 +218,7 @@ export function App() {
         {activeTab === 'news' && <CoinDeskNews />}
 
         {/* View: Converter */}
-        {activeTab === 'converter' && <CryptoConverter />}
+        {activeTab === 'converter' && <CryptoConverter tokens={tokens} />}
       </main>
 
       {/* In-Depth Token Modal (CoinGecko / CoinDesk style) */}
@@ -158,6 +230,16 @@ export function App() {
           onToggleWatchlist={handleToggleWatchlist}
         />
       )}
+
+      {/* Interactive Web3 Wallet Modal */}
+      <WalletModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+        walletAddress={walletAddress}
+        onSetWalletAddress={setWalletAddress}
+        network={walletNetwork}
+        onSetNetwork={setWalletNetwork}
+      />
 
       {/* Footer */}
       <Footer />
