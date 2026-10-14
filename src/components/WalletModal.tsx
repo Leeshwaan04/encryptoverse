@@ -362,3 +362,4 @@ export const WalletModal: React.FC<WalletModalProps> = ({
     </div>
   );
 };
+

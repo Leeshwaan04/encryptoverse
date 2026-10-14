@@ -38,3 +38,4 @@ jobs:
           name: encryptoverse-dist
           path: dist/
           retention-days: 7
+

@@ -238,3 +238,4 @@ export async function fetchLiveGlobalStats(): Promise<GlobalStatsResult> {
     isLive: false,
   };
 }
+
