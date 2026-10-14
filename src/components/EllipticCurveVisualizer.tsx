@@ -2,6 +2,29 @@ import React, { useState, useEffect, useRef, useId } from 'react';
 import { Play, RotateCcw, Info, Sparkles } from 'lucide-react';
 import { cypherSound } from '../lib/crypto-utils';
 
+function drawPoint(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  color: string,
+  label: string,
+  glow = false
+) {
+  if (glow) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 12;
+  }
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = 'bold 12px monospace';
+  ctx.fillText(label, cx + 10, cy - 8);
+}
+
 export const EllipticCurveVisualizer: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -138,10 +161,10 @@ export const EllipticCurveVisualizer: React.FC = () => {
       let isTangent = false;
       if (Math.abs(P.x - Q.x) < 0.001) {
         // Tangent doubling
-        lambda = (3 * P.x * P.x + paramA) / (2 * P.y);
+        lambda = Math.abs(P.y) < 0.001 ? 9999 : (3 * P.x * P.x + paramA) / (2 * P.y);
         isTangent = true;
       } else {
-        lambda = (Q.y - P.y) / (Q.x - P.x);
+        lambda = Math.abs(Q.x - P.x) < 0.001 ? 9999 : (Q.y - P.y) / (Q.x - P.x);
       }
 
       // Intersection x3 = lambda^2 - x1 - x2
@@ -186,29 +209,6 @@ export const EllipticCurveVisualizer: React.FC = () => {
     }
   }, [paramA, paramB, pX, qX]);
 
-  const drawPoint = (
-    ctx: CanvasRenderingContext2D,
-    cx: number,
-    cy: number,
-    color: string,
-    label: string,
-    glow = false
-  ) => {
-    if (glow) {
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 12;
-    }
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle = '#f8fafc';
-    ctx.font = 'bold 12px monospace';
-    ctx.fillText(label, cx + 10, cy - 8);
-  };
-
   const handleSimulateScalar = () => {
     setAnimating(true);
     cypherSound.playBlip(700, 'sawtooth', 0.1);
@@ -238,12 +238,21 @@ export const EllipticCurveVisualizer: React.FC = () => {
   let rYStr = 'N/A';
 
   if (pY !== null && qY !== null) {
-    const lam = Math.abs(pX - qX) < 0.001 ? (3 * pX * pX + paramA) / (2 * pY) : (qY - pY) / (qX - pX);
-    const rx = lam * lam - pX - qX;
-    const ry = -(lam * (pX - rx) - pY);
-    slopeStr = lam.toFixed(3);
-    rXStr = rx.toFixed(3);
-    rYStr = ry.toFixed(3);
+    const isDouble = Math.abs(pX - qX) < 0.001;
+    const isZeroY = Math.abs(pY) < 0.001;
+
+    if (isDouble && isZeroY) {
+      slopeStr = '∞ (Vertical)';
+      rXStr = '∞';
+      rYStr = '∞ (Point at Infinity O)';
+    } else {
+      const lam = isDouble ? (3 * pX * pX + paramA) / (2 * pY) : (qY - pY) / (qX - pX);
+      const rx = lam * lam - pX - qX;
+      const ry = -(lam * (pX - rx) - pY);
+      slopeStr = lam.toFixed(3);
+      rXStr = rx.toFixed(3);
+      rYStr = ry.toFixed(3);
+    }
   }
 
   return (

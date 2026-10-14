@@ -322,7 +322,7 @@ export const QuestArena: React.FC = () => {
             </div>
 
             <p className="text-xs font-mono text-slate-400 leading-relaxed">
-              The One-Time Pad is mathematically unbreakable (Shannon perfect secrecy) — <em>only if the key is never reused</em>.
+              The One-Time Pad is mathematically unbreakable (Shannon perfect secrecy) - <em>only if the key is never reused</em>.
               If two messages M₁ and M₂ are encrypted with the same key K:
             </p>
 

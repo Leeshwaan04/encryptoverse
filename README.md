@@ -136,7 +136,7 @@ npm run preview
 ## 📜 Manifesto
 
 > *"Privacy is necessary for an open society in the electronic age... We cannot expect governments, corporations, or other large, faceless organizations to grant us privacy... We must defend our own privacy if we expect to have any. We the Cypherpunks are dedicated to building anonymous systems."*  
-> — **Eric Hughes, 1993**
+> - **Eric Hughes, 1993**
 
 ---
 

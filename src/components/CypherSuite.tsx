@@ -47,10 +47,10 @@ export const CypherSuite: React.FC = () => {
   // Post Quantum Inspector state
   const [selectedAlgo, setSelectedAlgo] = useState<'kyber768' | 'dilithium3' | 'ed25519' | 'rsa4096'>('kyber768');
   const [generatedKey, setGeneratedKey] = useState<{ pubKey: string; privKey: string; size: string; status: string }>({
-    pubKey: '',
-    privKey: '',
-    size: '',
-    status: '',
+    pubKey: '0x_ML_KEM_768_PUB_f7a28b49c0d12e84...[1,184 bytes total]',
+    privKey: '0x_ML_KEM_768_PRIV_90c34e12fa78bc90...[2,400 bytes total]',
+    size: '1,184 Bytes Public | 2,400 Bytes Private',
+    status: 'NIST FIPS 203 Standard (Post-Quantum Secure)',
   });
 
   // Handle encryption
@@ -145,10 +145,6 @@ export const CypherSuite: React.FC = () => {
         break;
     }
   };
-
-  useEffect(() => {
-    generateKeysForAlgo('kyber768');
-  }, []);
 
   return (
     <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-xl relative overflow-hidden">

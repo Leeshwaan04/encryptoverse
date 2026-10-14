@@ -62,7 +62,8 @@ export const IcoPresale: React.FC = () => {
     SOL: 160,
   };
 
-  const parsedPay = parseFloat(payAmount) || 0;
+  const rawVal = parseFloat(payAmount);
+  const parsedPay = isNaN(rawVal) || rawVal < 0 ? 0 : rawVal;
   const usdValue = parsedPay * rates[paymentCurrency];
   const baseTokens = Math.floor(usdValue / currentPrice);
   const bonusRate = usdValue >= 1000 ? 0.15 : usdValue >= 250 ? 0.08 : 0.03;

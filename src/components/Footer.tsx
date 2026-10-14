@@ -73,7 +73,7 @@ export const Footer: React.FC = () => {
 
         <div className="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
           <div>
-            © {new Date().getFullYear()} Encryptoverse. Built for cypherpunks, builders & explorers.
+            © 2026 Encryptoverse. Built for cypherpunks, builders & explorers.
           </div>
           <div className="flex items-center gap-1">
             <span>Secured with open mathematical truths</span>
