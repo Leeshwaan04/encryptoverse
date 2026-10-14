@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { LatticeCanvas } from './components/LatticeCanvas';
+import { IcoPresale } from './components/IcoPresale';
 import { EllipticCurveVisualizer } from './components/EllipticCurveVisualizer';
 import { LatticeVisualizer } from './components/LatticeVisualizer';
 import { ZKLab } from './components/ZKLab';
@@ -45,6 +46,11 @@ export function App() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-24 pt-6">
+          {/* SECTION: TOKEN ICO / PRESALE */}
+          <section id="ico" className="scroll-mt-24 space-y-6">
+            <IcoPresale />
+          </section>
+
           {/* SECTION 1: THE HOLODECK (Interactive Visualizers) */}
           <section id="holodeck" className="scroll-mt-24 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">

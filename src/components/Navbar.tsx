@@ -27,6 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => 
   };
 
   const navItems = [
+    { id: 'ico', label: '$ECV Token ICO', isLive: true },
     { id: 'holodeck', label: 'The Holodeck' },
     { id: 'zklab', label: 'ZK Lab' },
     { id: 'suite', label: 'Cypher Suite' },
@@ -76,12 +77,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => 
                   onNavigate(item.id);
                   cypherSound.playBlip(640, 'sine', 0.04);
                 }}
-                className={`px-3 py-1.5 rounded-lg transition ${
+                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
                   isActive
                     ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
                     : 'text-slate-400 hover:text-white hover:bg-slate-900'
                 }`}
               >
+                {item.isLive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+                )}
                 {item.label}
               </button>
             );

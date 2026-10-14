@@ -76,13 +76,24 @@ export const Hero: React.FC<HeroProps> = ({ onExplore }) => {
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <button
             onClick={() => {
+              onExplore('ico');
+              cypherSound.playBlip(800, 'triangle');
+            }}
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-mono text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/25 transition duration-200 flex items-center gap-2 group"
+          >
+            <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping" />
+            Join $ECV Presale ($0.035)
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition duration-200" />
+          </button>
+
+          <button
+            onClick={() => {
               onExplore('holodeck');
               cypherSound.playBlip(750);
             }}
             className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-mono text-xs sm:text-sm font-bold shadow-lg shadow-cyan-500/25 transition duration-200 flex items-center gap-2 group"
           >
-            Launch The Holodeck
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition duration-200" />
+            The Holodeck
           </button>
 
           <button
@@ -93,7 +104,7 @@ export const Hero: React.FC<HeroProps> = ({ onExplore }) => {
             className="px-6 py-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-200 font-mono text-xs sm:text-sm font-semibold transition flex items-center gap-2"
           >
             <Shield className="w-4 h-4 text-emerald-400" />
-            Enter ZK Lab
+            ZK Lab
           </button>
 
           <button

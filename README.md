@@ -24,6 +24,24 @@ Most developers and cypherpunks encounter modern cryptography as impenetrable ma
 
 ## 🔬 Core Product Pillars
 
+### 0. 🪙 Encryptoverse Token ($ECV) ICO & Presale Portal
+- **Decentralized Token Presale Launchpad:**
+  - Multi-stage public token sale dashboard with live countdown clock and soft/hard cap indicators.
+  - Multi-currency swap portal supporting **ETH**, **USDT**, **USDC**, and **SOL**.
+  - Dynamic Cypherpunk tier bonus calculation (+3% to +15% based on acquisition volume).
+  - Web3 wallet connect simulation with instant allocation confirmations and smart contract verification badge.
+- **Cyphernomics (Token Distribution):**
+  - **35%** Public ICO / Presale (linear 6-month unlock)
+  - **20%** Zero-Knowledge & Post-Quantum R&D Treasury
+  - **18%** Staking & Privacy Verifier Rewards
+  - **12%** CTF Quests & Community Bug Bounties
+  - **10%** Core Cypherpunks & Contributors (18-month vesting, 6-month cliff)
+  - **5%** DEX/CEX Launch Liquidity Pool (Permanently locked)
+- **Token Utilities:**
+  - **ZK Gas Subsidy:** 50% discount on client/server zero-knowledge proof generation and validation.
+  - **Quantum-Safe Vaults:** Stake $ECV to unlock end-to-end encrypted decentralized IPFS/Arweave cloud storage quotas.
+  - **DAO Protocol Governance:** Quadratic voting on supported cryptographic primitives and privacy grants.
+
 ### 1. 🌌 The Cryptography Holodeck (60fps Canvas Simulations)
 - **Elliptic Curve Group Law Simulator:**
   - Interactive Weierstrass cubic curve ($y^2 = x^3 + ax + b$).
