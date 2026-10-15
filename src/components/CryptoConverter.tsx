@@ -31,25 +31,25 @@ export const CryptoConverter: React.FC<CryptoConverterProps> = ({ tokens = crypt
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl font-mono text-xs space-y-6">
+    <div className="max-w-2xl mx-auto p-4 sm:p-6 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl font-mono text-xs space-y-5 sm:space-y-6">
       <div className="flex items-center justify-between border-b border-slate-800 pb-3">
         <div className="flex items-center gap-2">
           <Calculator className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+          <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
             Real-Time Crypto Converter & Price Calculator
           </h3>
         </div>
-        <span className="text-[10px] text-cyan-400 font-bold">Live Rates</span>
+        <span className="text-[10px] text-cyan-400 font-bold shrink-0">Live Rates</span>
       </div>
 
       <div className="space-y-4">
         {/* From Token */}
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-          <div className="flex justify-between text-slate-400 text-[11px]">
+        <div className="p-3.5 sm:p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+          <div className="flex justify-between text-slate-400 text-[10px] sm:text-[11px]">
             <span>You Send / Convert:</span>
             <span>Current Price: ${tokenFrom.price.toLocaleString()}</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3">
             <input
               type="number"
               min="0"
@@ -62,9 +62,9 @@ export const CryptoConverter: React.FC<CryptoConverterProps> = ({ tokens = crypt
             <select
               value={tokenFromId}
               onChange={(e) => setTokenFromId(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-white font-bold px-3 py-2 rounded-lg cursor-pointer text-xs"
+              className="bg-slate-800 border border-slate-700 text-white font-bold px-3 py-2 rounded-lg cursor-pointer text-xs w-full sm:w-auto shrink-0"
             >
-              {cryptoTokens.map((t) => (
+              {sourceTokens.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name} ({t.symbol})
                 </option>
@@ -85,12 +85,12 @@ export const CryptoConverter: React.FC<CryptoConverterProps> = ({ tokens = crypt
         </div>
 
         {/* To Token */}
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-          <div className="flex justify-between text-slate-400 text-[11px]">
+        <div className="p-3.5 sm:p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+          <div className="flex justify-between text-slate-400 text-[10px] sm:text-[11px]">
             <span>You Receive (Estimated):</span>
             <span>Current Price: ${tokenTo.price.toLocaleString()}</span>
           </div>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
             <div className="text-xl font-extrabold text-cyan-300">
               {convertedToAmount < 0.0001
                 ? convertedToAmount.toFixed(8)
@@ -99,9 +99,9 @@ export const CryptoConverter: React.FC<CryptoConverterProps> = ({ tokens = crypt
             <select
               value={tokenToId}
               onChange={(e) => setTokenToId(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-white font-bold px-3 py-2 rounded-lg cursor-pointer text-xs"
+              className="bg-slate-800 border border-slate-700 text-white font-bold px-3 py-2 rounded-lg cursor-pointer text-xs w-full sm:w-auto shrink-0"
             >
-              {cryptoTokens.map((t) => (
+              {sourceTokens.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name} ({t.symbol})
                 </option>

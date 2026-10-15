@@ -29,31 +29,31 @@ export const IcoDropsRadar: React.FC = () => {
   return (
     <div className="space-y-6 font-mono text-xs">
       {/* Top Banner: ICO Drops Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 via-cyan-950/20 to-purple-950/20 border border-slate-800 backdrop-blur-md">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 via-cyan-950/20 to-purple-950/20 border border-slate-800 backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1">
               <Flame className="w-3 h-3 fill-current" />
               ICO Drops Radar
             </span>
-            <span className="text-slate-400 text-[11px]">Curated Web3 Launchpad & Presale Database</span>
+            <span className="text-slate-400 text-[10px] sm:text-[11px]">Curated Web3 Launchpad & Presale Database</span>
           </div>
-          <h2 className="text-2xl font-extrabold text-white mt-1">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-1">
             Token Presales, IDOs & Launchpad Radar
           </h2>
-          <p className="text-slate-400 text-xs">
+          <p className="text-slate-400 text-[11px] sm:text-xs">
             Track active token offerings, upcoming whitelist stages, and all-time ROI on public sales.
           </p>
         </div>
 
         {/* Tab switchers */}
-        <div className="flex p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+        <div className="flex w-full sm:w-auto p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs overflow-x-auto no-scrollbar">
           <button
             onClick={() => {
               setActiveTab('active');
               cypherSound.playBlip(600);
             }}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition font-bold ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg transition font-bold whitespace-nowrap text-[11px] sm:text-xs ${
               activeTab === 'active'
                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-white'
@@ -67,7 +67,7 @@ export const IcoDropsRadar: React.FC = () => {
               setActiveTab('upcoming');
               cypherSound.playBlip(600);
             }}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition font-bold ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg transition font-bold whitespace-nowrap text-[11px] sm:text-xs ${
               activeTab === 'upcoming'
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-white'
@@ -81,7 +81,7 @@ export const IcoDropsRadar: React.FC = () => {
               setActiveTab('ended');
               cypherSound.playBlip(600);
             }}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition font-bold ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg transition font-bold whitespace-nowrap text-[11px] sm:text-xs ${
               activeTab === 'ended'
                 ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-white'
@@ -95,9 +95,9 @@ export const IcoDropsRadar: React.FC = () => {
 
       {/* Platform / Chain Filter Chips */}
       <div className="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar pb-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <Filter className="w-3.5 h-3.5 text-slate-500" />
-          <span className="text-slate-500 text-[11px]">Chain:</span>
+          <span className="text-slate-500 text-[10px] sm:text-[11px]">Chain:</span>
           {chains.map((chain) => (
             <button
               key={chain}
@@ -105,7 +105,7 @@ export const IcoDropsRadar: React.FC = () => {
                 setSelectedChain(chain);
                 cypherSound.playBlip(550, 'sine', 0.03);
               }}
-              className={`px-2.5 py-1 rounded-lg text-[11px] transition font-bold ${
+              className={`px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] whitespace-nowrap transition font-bold ${
                 selectedChain === chain
                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                   : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
@@ -116,7 +116,7 @@ export const IcoDropsRadar: React.FC = () => {
           ))}
         </div>
 
-        <div className="text-[11px] text-slate-500">
+        <div className="text-[11px] text-slate-500 hidden sm:block shrink-0">
           Showing <strong>{filteredProjects.length}</strong> {activeTab} offerings
         </div>
       </div>

@@ -48,11 +48,11 @@ export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
               onClick={() => onSelectToken(token.id)}
               className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer transition text-xs"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-500 w-3">{idx + 1}</span>
-                <img src={token.icon} alt={token.name} className="w-4 h-4 rounded-full" />
-                <span className="font-bold text-slate-200">{token.name}</span>
-                <span className="text-[10px] text-slate-500">{token.symbol}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[10px] text-slate-500 w-3 shrink-0">{idx + 1}</span>
+                <img src={token.icon} alt={token.name} className="w-4 h-4 rounded-full shrink-0" />
+                <span className="font-bold text-slate-200 truncate">{token.name}</span>
+                <span className="text-[10px] text-slate-500 uppercase shrink-0">{token.symbol}</span>
               </div>
               <span
                 className={`font-bold flex items-center text-[11px] ${
@@ -84,11 +84,11 @@ export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
               onClick={() => onSelectToken(token.id)}
               className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer transition text-xs"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-500 w-3">{idx + 1}</span>
-                <img src={token.icon} alt={token.name} className="w-4 h-4 rounded-full" />
-                <span className="font-bold text-slate-200">{token.name}</span>
-                <span className="text-[10px] text-slate-500">{token.symbol}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[10px] text-slate-500 w-3 shrink-0">{idx + 1}</span>
+                <img src={token.icon} alt={token.name} className="w-4 h-4 rounded-full shrink-0" />
+                <span className="font-bold text-slate-200 truncate">{token.name}</span>
+                <span className="text-[10px] text-slate-500 uppercase shrink-0">{token.symbol}</span>
               </div>
               <span className="text-emerald-400 font-bold flex items-center text-[11px]">
                 +{token.change24h}%

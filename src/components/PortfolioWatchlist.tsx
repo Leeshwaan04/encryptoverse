@@ -115,14 +115,14 @@ export const PortfolioWatchlist: React.FC<PortfolioWatchlistProps> = ({
 
       {/* Watchlist Table */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">
               Your Watchlist ({watchlistedTokens.length})
             </h3>
           </div>
-          <span className="text-slate-500 text-[11px]">Click star icon on any coin to add or remove</span>
+          <span className="text-slate-500 text-[10px] sm:text-[11px]">Click star icon on any coin to add or remove</span>
         </div>
 
         {watchlistedTokens.length === 0 ? (
@@ -134,18 +134,18 @@ export const PortfolioWatchlist: React.FC<PortfolioWatchlistProps> = ({
             </p>
           </div>
         ) : (
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-[#05070b] border-b border-slate-800 text-[11px] text-slate-400 uppercase tracking-wider">
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 overflow-hidden shadow-lg">
+            <div className="overflow-x-auto no-scrollbar">
+              <table className="w-full text-left font-mono text-xs min-w-[340px]">
+                <thead className="bg-[#05070b] border-b border-slate-800 text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider select-none">
                   <tr>
-                    <th className="py-3 px-3 w-10 text-center"></th>
-                    <th className="py-3 px-3">Coin</th>
-                    <th className="py-3 px-4 text-right">Price</th>
-                    <th className="py-3 px-3 text-right">24h %</th>
-                    <th className="py-3 px-4 text-right">Market Cap</th>
-                    <th className="py-3 px-4 text-right">Your Holdings</th>
-                    <th className="py-3 px-4 text-right">Holding Value</th>
+                    <th className="py-2.5 sm:py-3 px-2 sm:px-3 w-8 sm:w-10 text-center"></th>
+                    <th className="py-2.5 sm:py-3 px-2 sm:px-3">Coin</th>
+                    <th className="py-2.5 sm:py-3 px-2 sm:px-4 text-right">Price</th>
+                    <th className="py-2.5 sm:py-3 px-2 sm:px-3 text-right">24h %</th>
+                    <th className="py-2.5 sm:py-3 px-2 sm:px-4 text-right hidden md:table-cell">Market Cap</th>
+                    <th className="py-2.5 sm:py-3 px-2 sm:px-4 text-right">Holdings</th>
+                    <th className="py-2.5 sm:py-3 px-2 sm:px-4 text-right">Value</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">

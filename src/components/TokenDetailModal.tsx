@@ -67,31 +67,32 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
   const atlGain = (((token.price - token.atl) / token.atl) * 100).toFixed(0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#090b11] border border-slate-800 shadow-2xl p-6 font-mono text-xs space-y-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl bg-[#090b11] border border-slate-800 shadow-2xl p-4 sm:p-6 font-mono text-xs space-y-4 sm:space-y-6">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
+          aria-label="Close Token Details Modal"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition z-10"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* Modal Header */}
-        <div className="flex flex-wrap items-start justify-between gap-4 pr-10">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 pr-10 sm:pr-12">
           <div className="flex items-center gap-3">
-            <img src={token.icon} alt={token.name} className="w-10 h-10 rounded-full" />
+            <img src={token.icon} alt={token.name} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full shrink-0" />
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xl font-extrabold text-white">{token.name}</h3>
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold uppercase">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h3 className="text-lg sm:text-xl font-extrabold text-white">{token.name}</h3>
+                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold uppercase">
                   {token.symbol}
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-semibold">
                   Rank #{token.rank}
                 </span>
               </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">Category: {token.category}</div>
+              <div className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">Category: {token.category}</div>
             </div>
           </div>
 
