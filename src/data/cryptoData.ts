@@ -62,15 +62,39 @@ export interface MarketNews {
   url: string;
 }
 
-export const globalMarketStats = {
+export interface FearGreedReading {
+  value: number;
+  label: string;
+}
+
+export interface GlobalStats {
+  totalMarketCap: number;
+  marketCapChange24h: number;
+  /** Sum of 24h volume across the top-50 coins we list (CoinGecko's /global volume field is unreliable). */
+  volume24h: number;
+  btcDominance: number;
+  ethDominance: number;
+  activeCryptos: number;
+  exchangesCount: number;
+  /** null until a live reading is received — never shown as a made-up number. */
+  gasGwei: number | null;
+  fearGreed: {
+    now: FearGreedReading;
+    yesterday: FearGreedReading | null;
+    lastWeek: FearGreedReading | null;
+    lastMonth: FearGreedReading | null;
+  } | null;
+}
+
+// Offline snapshot used only when the live feed has never loaded. The UI marks it as not live.
+export const globalMarketStats: GlobalStats = {
   totalMarketCap: 2648920150000,
   marketCapChange24h: 2.84,
   volume24h: 94820190000,
   btcDominance: 56.4,
   ethDominance: 15.2,
-  gasGwei: 14,
-  fearGreedIndex: 74,
-  fearGreedLabel: 'Greed',
+  gasGwei: null,
+  fearGreed: null,
   activeCryptos: 14850,
   exchangesCount: 785,
 };

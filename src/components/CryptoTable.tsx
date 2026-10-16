@@ -120,7 +120,7 @@ export const CryptoTable: React.FC<CryptoTableProps> = ({
       {/* Main Table Container */}
       <div className="rounded-xl border border-slate-800 bg-slate-950/70 backdrop-blur-md overflow-hidden shadow-lg">
         <div className="overflow-x-auto no-scrollbar">
-          <table className="w-full text-left font-mono text-xs min-w-[340px]">
+          <table className="w-full text-left font-mono text-xs">
             {/* Table Header */}
             <thead className="bg-[#05070b] border-b border-slate-800/80 text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider select-none">
               <tr>

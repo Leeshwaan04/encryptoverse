@@ -1,8 +1,10 @@
 // Encryptoverse Live Crypto Market API Service
 // Connects to CoinGecko public market feeds with resilient caching and offline fallback
 
-import { cryptoTokens, globalMarketStats, type CryptoToken } from '../data/cryptoData';
+import { cryptoTokens, globalMarketStats, type CryptoToken, type GlobalStats, type FearGreedReading } from '../data/cryptoData';
 
+// Same-origin Cloudflare Pages Functions proxy (see /functions/api). Handles caching and upstream rate limits.
+const API_BASE = '/api';
 const CACHE_KEY_PREFIX = 'encryptoverse_market_v1_';
 const CACHE_TTL_MS = 90 * 1000; // 90 seconds cache to protect against rate limits
 
@@ -119,18 +121,16 @@ export async function fetchLiveCryptoTokens(currency = 'USD'): Promise<LiveMarke
 
   // 2. Fetch fresh market data from CoinGecko public API
   try {
-    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${curr}&order=market_cap_desc&per_page=50&page=1&sparkline=true&price_change_percentage=1h%2C24h%2C7d`;
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-      },
-    });
+    const response = await fetch(`${API_BASE}/markets?currency=${curr}`, { headers: { Accept: 'application/json' } });
 
     if (!response.ok) {
-      throw new Error(`CoinGecko HTTP error: ${response.status}`);
+      throw new Error(`Market data HTTP error: ${response.status}`);
     }
 
-    const data: CoinGeckoMarketItem[] = await response.json();
+    const payload: { fetchedAt: string; data: CoinGeckoMarketItem[] } = await response.json();
+    const data = payload.data;
+    const servedStale = response.headers.get('X-Stale') === '1';
+    const fetchedAt = new Date(payload.fetchedAt);
 
     if (!Array.isArray(data) || data.length === 0) {
       throw new Error('Empty coin list received from CoinGecko');
@@ -184,8 +184,8 @@ export async function fetchLiveCryptoTokens(currency = 'USD'): Promise<LiveMarke
     return {
       tokens: mappedTokens,
       isLive: true,
-      isCached: false,
-      lastUpdated: new Date(),
+      isCached: servedStale,
+      lastUpdated: fetchedAt,
     };
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : 'CoinGecko API unreachable';
@@ -201,41 +201,61 @@ export async function fetchLiveCryptoTokens(currency = 'USD'): Promise<LiveMarke
 }
 
 export interface GlobalStatsResult {
-  stats: typeof globalMarketStats;
+  stats: GlobalStats;
   isLive: boolean;
 }
 
-export async function fetchLiveGlobalStats(): Promise<GlobalStatsResult> {
-  try {
-    const res = await fetch('https://api.coingecko.com/api/v3/global');
-    if (!res.ok) throw new Error('Global stats failed');
-    const json = await res.json();
-    const d = json?.data;
+async function getJson<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`${path} HTTP ${res.status}`);
+  return ((await res.json()) as { data: T }).data;
+}
 
-    if (d && d.total_market_cap) {
-      return {
-        stats: {
-          totalMarketCap: d.total_market_cap.usd || globalMarketStats.totalMarketCap,
-          marketCapChange24h: Number((d.market_cap_change_percentage_24h_usd || 0).toFixed(2)),
-          volume24h: d.total_volume.usd || globalMarketStats.volume24h,
-          btcDominance: Number((d.market_cap_percentage.btc || 56.4).toFixed(1)),
-          ethDominance: Number((d.market_cap_percentage.eth || 15.2).toFixed(1)),
-          gasGwei: globalMarketStats.gasGwei,
-          fearGreedIndex: globalMarketStats.fearGreedIndex,
-          fearGreedLabel: globalMarketStats.fearGreedLabel,
-          activeCryptos: d.active_cryptocurrencies || globalMarketStats.activeCryptos,
-          exchangesCount: d.markets || globalMarketStats.exchangesCount,
-        },
-        isLive: true,
-      };
-    }
-  } catch {
-    // Offline fallback
-  }
+interface FngPayload {
+  now: FearGreedReading;
+  yesterday: FearGreedReading | null;
+  lastWeek: FearGreedReading | null;
+  lastMonth: FearGreedReading | null;
+}
+
+export async function fetchLiveGlobalStats(): Promise<GlobalStatsResult> {
+  const [globalRes, fngRes, gasRes] = await Promise.allSettled([
+    getJson<{
+      total_market_cap?: { usd: number };
+      market_cap_change_percentage_24h_usd?: number;
+      market_cap_percentage?: { btc?: number; eth?: number };
+      active_cryptocurrencies?: number;
+      markets?: number;
+    }>('/global'),
+    getJson<FngPayload>('/fng'),
+    getJson<{ gwei: number }>('/gas'),
+  ]);
+
+  const d = globalRes.status === 'fulfilled' ? globalRes.value : null;
+  const live = Boolean(d?.total_market_cap?.usd);
 
   return {
-    stats: globalMarketStats,
-    isLive: false,
+    isLive: live,
+    stats: {
+      ...globalMarketStats,
+      ...(live && d
+        ? {
+            totalMarketCap: d.total_market_cap!.usd,
+            marketCapChange24h: Number((d.market_cap_change_percentage_24h_usd ?? 0).toFixed(2)),
+            btcDominance: Number((d.market_cap_percentage?.btc ?? globalMarketStats.btcDominance).toFixed(1)),
+            ethDominance: Number((d.market_cap_percentage?.eth ?? globalMarketStats.ethDominance).toFixed(1)),
+            activeCryptos: d.active_cryptocurrencies ?? globalMarketStats.activeCryptos,
+            exchangesCount: d.markets ?? globalMarketStats.exchangesCount,
+          }
+        : {}),
+      fearGreed: fngRes.status === 'fulfilled' ? fngRes.value : null,
+      gasGwei: gasRes.status === 'fulfilled' ? gasRes.value.gwei : null,
+    },
   };
 }
 
+/** CoinGecko's /global total_volume is not reliable, so 24h volume is the sum over the listed top coins. */
+export function withTopCoinVolume(stats: GlobalStats, tokens: CryptoToken[]): GlobalStats {
+  const total = tokens.reduce((sum, t) => sum + (t.volume24h || 0), 0);
+  return total > 0 ? { ...stats, volume24h: total } : stats;
+}

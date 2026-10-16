@@ -15,6 +15,7 @@ import { cryptoTokens, globalMarketStats, type CryptoToken } from './data/crypto
 import {
   fetchLiveCryptoTokens,
   fetchLiveGlobalStats,
+  withTopCoinVolume,
   type LiveMarketResult,
   type GlobalStatsResult,
 } from './services/cryptoApi';
@@ -60,7 +61,7 @@ export function App() {
         setTokens(tokenRes.tokens);
       }
       if (statsRes.stats) {
-        setMarketStats(statsRes.stats);
+        setMarketStats(tokenRes.isLive ? withTopCoinVolume(statsRes.stats, tokenRes.tokens) : statsRes.stats);
       }
       setIsLiveFeed(tokenRes.isLive);
       setIsCachedFeed(tokenRes.isCached);
@@ -86,7 +87,7 @@ export function App() {
             setTokens(tokenRes.tokens);
           }
           if (statsRes.stats) {
-            setMarketStats(statsRes.stats);
+            setMarketStats(tokenRes.isLive ? withTopCoinVolume(statsRes.stats, tokenRes.tokens) : statsRes.stats);
           }
           setIsLiveFeed(tokenRes.isLive);
           setIsCachedFeed(tokenRes.isCached);
@@ -133,7 +134,7 @@ export function App() {
   });
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
+    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden w-full max-w-full">
       {/* 1. CoinMarketCap/CoinGecko Top Ticker Bar */}
       <GlobalMarketHeader
         selectedCurrency={selectedCurrency}
@@ -159,13 +160,14 @@ export function App() {
       />
 
       {/* 3. Main Content Router */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-8 min-w-0">
         {/* View: Markets (Default Home) */}
         {activeTab === 'markets' && (
           <div className="space-y-6">
             {/* Highlights row */}
             <MarketHighlights
               tokens={tokens}
+              stats={marketStats}
               onSelectToken={(tokenId) => {
                 const found = tokens.find((t) => t.id === tokenId);
                 if (found) setSelectedToken(found);

@@ -5,19 +5,24 @@ import {
   Rocket,
   Activity
 } from 'lucide-react';
-import { cryptoTokens, icoProjects, globalMarketStats, type CryptoToken } from '../data/cryptoData';
+import { cryptoTokens, icoProjects, globalMarketStats, type CryptoToken, type GlobalStats } from '../data/cryptoData';
 
 interface MarketHighlightsProps {
   onSelectToken: (tokenId: string) => void;
   onSelectIco: (icoId: string) => void;
   tokens?: CryptoToken[];
+  stats?: GlobalStats;
 }
 
 export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
   onSelectToken,
   onSelectIco,
   tokens = cryptoTokens,
+  stats = globalMarketStats,
 }) => {
+  const fng = stats.fearGreed;
+  const fmt = (r: { value: number; label: string } | null) => (r ? `${r.value} (${r.label})` : '—');
+  const fngColor = !fng ? 'text-slate-500' : fng.now.value < 25 ? 'text-rose-400' : fng.now.value < 45 ? 'text-orange-400' : fng.now.value < 55 ? 'text-amber-300' : 'text-emerald-400';
   const sourceTokens = tokens.length > 0 ? tokens : cryptoTokens;
 
   // Top 3 trending
@@ -48,14 +53,14 @@ export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
               onClick={() => onSelectToken(token.id)}
               className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer transition text-xs"
             >
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 mr-2">
                 <span className="text-[10px] text-slate-500 w-3 shrink-0">{idx + 1}</span>
                 <img src={token.icon} alt={token.name} className="w-4 h-4 rounded-full shrink-0" />
-                <span className="font-bold text-slate-200 truncate">{token.name}</span>
-                <span className="text-[10px] text-slate-500 uppercase shrink-0">{token.symbol}</span>
+                <span className="font-bold text-slate-200 truncate text-[11px] sm:text-xs max-w-[85px] sm:max-w-none">{token.name}</span>
+                <span className="text-[9px] sm:text-[10px] text-slate-500 uppercase shrink-0">{token.symbol}</span>
               </div>
               <span
-                className={`font-bold flex items-center text-[11px] ${
+                className={`font-bold flex items-center text-[11px] shrink-0 ${
                   token.change24h >= 0 ? 'text-emerald-400' : 'text-rose-400'
                 }`}
               >
@@ -84,13 +89,13 @@ export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
               onClick={() => onSelectToken(token.id)}
               className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer transition text-xs"
             >
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 mr-2">
                 <span className="text-[10px] text-slate-500 w-3 shrink-0">{idx + 1}</span>
                 <img src={token.icon} alt={token.name} className="w-4 h-4 rounded-full shrink-0" />
-                <span className="font-bold text-slate-200 truncate">{token.name}</span>
-                <span className="text-[10px] text-slate-500 uppercase shrink-0">{token.symbol}</span>
+                <span className="font-bold text-slate-200 truncate text-[11px] sm:text-xs max-w-[85px] sm:max-w-none">{token.name}</span>
+                <span className="text-[9px] sm:text-[10px] text-slate-500 uppercase shrink-0">{token.symbol}</span>
               </div>
-              <span className="text-emerald-400 font-bold flex items-center text-[11px]">
+              <span className="text-emerald-400 font-bold flex items-center text-[11px] shrink-0">
                 +{token.change24h}%
               </span>
             </div>
@@ -103,12 +108,12 @@ export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
         onClick={() => onSelectIco(spotlightIco.id)}
         className="p-4 rounded-xl bg-gradient-to-br from-slate-900/80 to-cyan-950/30 border border-cyan-800/40 backdrop-blur-md space-y-3 font-mono cursor-pointer hover:border-cyan-500/60 transition group"
       >
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1.5 text-cyan-300 font-bold">
-            <Rocket className="w-4 h-4 text-amber-400" />
-            <span>Spotlight Presale</span>
+        <div className="flex items-center justify-between text-xs gap-2">
+          <div className="flex items-center gap-1.5 text-cyan-300 font-bold truncate">
+            <Rocket className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="truncate">Spotlight Presale</span>
           </div>
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1">
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1 shrink-0 whitespace-nowrap">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
             STAGE 2 LIVE
           </span>
@@ -150,23 +155,19 @@ export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
             <Activity className="w-4 h-4 text-amber-400" />
             <span>Fear & Greed Index</span>
           </div>
-          <span className="text-[10px] text-slate-500">Updated today</span>
+          <span className="text-[10px] text-slate-500">Source: alternative.me</span>
         </div>
 
-        <div className="flex items-center justify-between pt-1">
-          <div>
-            <div className="text-3xl font-extrabold text-emerald-400">
-              {globalMarketStats.fearGreedIndex}
-            </div>
-            <div className="text-xs text-emerald-300 font-bold uppercase tracking-wider">
-              {globalMarketStats.fearGreedLabel}
-            </div>
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="shrink-0">
+            <div className={`text-3xl font-extrabold ${fngColor}`}>{fng ? fng.now.value : '—'}</div>
+            <div className={`text-xs font-bold uppercase tracking-wider ${fngColor}`}>{fng ? fng.now.label : 'Unavailable'}</div>
           </div>
 
-          <div className="text-right text-[10px] text-slate-400 space-y-1">
-            <div>Yesterday: <strong className="text-slate-300">71 (Greed)</strong></div>
-            <div>Last Week: <strong className="text-slate-300">65 (Greed)</strong></div>
-            <div>Last Month: <strong className="text-slate-400">54 (Neutral)</strong></div>
+          <div className="text-right text-[10px] text-slate-400 space-y-1 shrink-0">
+            <div>Yesterday: <strong className="text-slate-300">{fmt(fng?.yesterday ?? null)}</strong></div>
+            <div>Last Week: <strong className="text-slate-300">{fmt(fng?.lastWeek ?? null)}</strong></div>
+            <div>Last Month: <strong className="text-slate-300">{fmt(fng?.lastMonth ?? null)}</strong></div>
           </div>
         </div>
 
@@ -174,7 +175,7 @@ export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
         <div className="w-full bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-500 h-1.5 rounded-full relative">
           <div
             className="w-3 h-3 rounded-full bg-white border-2 border-slate-900 absolute -top-0.5 shadow"
-            style={{ left: `${globalMarketStats.fearGreedIndex}%` }}
+            style={{ left: `${fng ? fng.now.value : 50}%`, opacity: fng ? 1 : 0.3 }}
           />
         </div>
       </div>

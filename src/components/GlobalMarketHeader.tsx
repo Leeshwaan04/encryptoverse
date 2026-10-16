@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   TrendingUp,
+  TrendingDown,
   Fuel,
   Activity,
   DollarSign,
@@ -33,10 +34,12 @@ export const GlobalMarketHeader: React.FC<GlobalMarketHeaderProps> = ({
   lastUpdated,
 }) => {
   const currentStats = stats || globalMarketStats;
+  const fngTone = (v?: number) =>
+    v === undefined ? 'text-slate-400' : v < 25 ? 'text-rose-400' : v < 45 ? 'text-orange-400' : v < 55 ? 'text-amber-300' : 'text-emerald-400';
 
   return (
-    <div className="w-full bg-[#05070b] border-b border-slate-800 text-[11px] font-mono text-slate-400 py-1.5 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 overflow-x-auto no-scrollbar whitespace-nowrap">
+    <div className="w-full max-w-full bg-[#05070b] border-b border-slate-800 text-[11px] font-mono text-slate-400 py-1.5 px-3 sm:px-6 lg:px-8 min-w-0 overflow-hidden">
+      <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4 overflow-x-auto no-scrollbar whitespace-nowrap min-w-0">
         {/* Left Market Metrics */}
         <div className="flex items-center gap-4 sm:gap-6">
           {/* Live Feed Status Badge */}
@@ -86,14 +89,19 @@ export const GlobalMarketHeader: React.FC<GlobalMarketHeaderProps> = ({
             <span className="text-slate-200 font-bold">
               ${(currentStats.totalMarketCap / 1e12).toFixed(2)}T
             </span>
-            <span className="text-emerald-400 font-bold flex items-center text-[10px]">
-              <TrendingUp className="w-3 h-3 inline mr-0.5" />
-              +{currentStats.marketCapChange24h}%
+            <span className={`font-bold flex items-center text-[10px] ${currentStats.marketCapChange24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {currentStats.marketCapChange24h >= 0 ? (
+                <TrendingUp className="w-3 h-3 inline mr-0.5" />
+              ) : (
+                <TrendingDown className="w-3 h-3 inline mr-0.5" />
+              )}
+              {currentStats.marketCapChange24h >= 0 ? '+' : ''}
+              {currentStats.marketCapChange24h}%
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">24h Vol:</span>
+            <span className="text-slate-500">24h Vol (Top 50):</span>
             <span className="text-slate-200 font-bold">
               ${(currentStats.volume24h / 1e9).toFixed(1)}B
             </span>
@@ -112,14 +120,16 @@ export const GlobalMarketHeader: React.FC<GlobalMarketHeaderProps> = ({
           <div className="flex items-center gap-1.5">
             <Fuel className="w-3 h-3 text-cyan-400" />
             <span className="text-slate-500">Gas:</span>
-            <span className="text-cyan-300 font-bold">{currentStats.gasGwei} Gwei</span>
+            <span className="text-cyan-300 font-bold">
+              {currentStats.gasGwei === null ? '—' : `${currentStats.gasGwei < 1 ? currentStats.gasGwei.toFixed(3) : currentStats.gasGwei.toFixed(1)} Gwei`}
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <Activity className="w-3 h-3 text-emerald-400" />
             <span className="text-slate-500">Fear & Greed:</span>
-            <span className="text-emerald-400 font-bold">
-              {currentStats.fearGreedIndex}/100 ({currentStats.fearGreedLabel})
+            <span className={`font-bold ${fngTone(currentStats.fearGreed?.now.value)}`}>
+              {currentStats.fearGreed ? `${currentStats.fearGreed.now.value}/100 (${currentStats.fearGreed.now.label})` : '—'}
             </span>
           </div>
         </div>

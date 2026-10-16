@@ -39,10 +39,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const navItems = [
     { id: 'markets', label: 'Cryptocurrencies', icon: <TrendingUp className="w-3.5 h-3.5" /> },
-    { id: 'icodrops', label: 'ICO Drops & Launchpad', icon: <Rocket className="w-3.5 h-3.5 text-amber-400" />, badge: 'HOT' },
-    { id: 'trending', label: 'Trending & Gainers', icon: <Flame className="w-3.5 h-3.5 text-rose-400" /> },
+    { id: 'icodrops', label: 'ICO Drops & Launchpad', short: 'ICO Drops', icon: <Rocket className="w-3.5 h-3.5 text-amber-400" />, badge: 'HOT' },
+    { id: 'trending', label: 'Trending & Gainers', short: 'Trending', icon: <Flame className="w-3.5 h-3.5 text-rose-400" /> },
     { id: 'watchlist', label: 'Watchlist', icon: <Star className="w-3.5 h-3.5 text-yellow-400" />, count: watchlistCount },
-    { id: 'news', label: 'CoinDesk News', icon: <Newspaper className="w-3.5 h-3.5 text-cyan-400" /> },
+    { id: 'news', label: 'CoinDesk News', short: 'News', icon: <Newspaper className="w-3.5 h-3.5 text-cyan-400" /> },
     { id: 'converter', label: 'Converter', icon: <Calculator className="w-3.5 h-3.5 text-indigo-400" /> },
   ];
 
@@ -69,22 +69,22 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
           <div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="font-extrabold tracking-wider text-sm sm:text-base bg-gradient-to-r from-white via-slate-100 to-cyan-300 bg-clip-text text-transparent font-mono">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="font-extrabold tracking-wider text-xs sm:text-base bg-gradient-to-r from-white via-slate-100 to-cyan-300 bg-clip-text text-transparent font-mono">
                 ENCRYPTOVERSE
               </span>
-              <span className="text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+              <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
                 PRO
               </span>
             </div>
-            <div className="text-[9px] sm:text-[10px] font-mono text-slate-500 -mt-0.5 tracking-tight hidden md:block">
+            <div className="text-[9px] sm:text-[10px] font-mono text-slate-500 -mt-0.5 tracking-tight hidden md:block xl:hidden">
               Market Intelligence & ICO Launchpad
             </div>
           </div>
         </div>
 
         {/* Desktop Nav Items */}
-        <nav className="hidden lg:flex items-center gap-1 font-mono text-xs">
+        <nav className="hidden xl:flex items-center gap-0.5 font-mono text-xs">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
@@ -94,14 +94,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onSelectTab(item.id);
                   cypherSound.playBlip(640, 'sine', 0.04);
                 }}
-                className={`px-2.5 xl:px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 whitespace-nowrap ${
+                className={`px-2 py-1.5 rounded-lg transition flex items-center gap-1.5 whitespace-nowrap ${
                   isActive
                     ? 'bg-cyan-500/15 text-cyan-300 font-bold border border-cyan-500/30 shadow-sm shadow-cyan-500/10'
                     : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
                 }`}
               >
                 {item.icon}
-                <span>{item.label}</span>
+                <span>{item.short ?? item.label}</span>
                 {item.badge && (
                   <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
                     {item.badge}
@@ -120,7 +120,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Search Bar & Connect Wallet & Hamburger */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Quick Search on Tablets & Desktops */}
-          <div className="relative hidden sm:block w-36 md:w-48 lg:w-56">
+          <div className="relative hidden sm:block w-36 md:w-48 xl:w-40">
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
             <input
               type="text"
@@ -163,7 +163,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle Navigation Menu"
-            className="lg:hidden p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition"
+            className="xl:hidden p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition"
           >
             {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
@@ -172,7 +172,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#07090e]/98 border-b border-slate-800 px-4 py-3 space-y-2 font-mono text-xs max-h-[85vh] overflow-y-auto">
+        <div className="xl:hidden bg-[#07090e]/98 border-b border-slate-800 px-4 py-3 space-y-2 font-mono text-xs max-h-[85vh] overflow-y-auto">
           <div className="relative w-full mb-3">
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
             <input
