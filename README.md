@@ -7,7 +7,7 @@
 [![Vite](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
 [![React](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
 [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC.svg)](https://tailwindcss.com/)
-[![CI](https://github.com/Leeshwaan04/encryptoverse/actions/workflows/ci.yml/badge.svg)](https://github.com/Leeshwaan04/encryptoverse/actions)
+[![CI](https://github.com/Leeshwaan04/encryptoverse/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Leeshwaan04/encryptoverse/actions)
 
 ---
 
