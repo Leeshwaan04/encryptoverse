@@ -119,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Layers className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition" aria-hidden="true" />
             </span>
           </span>
-          <span className="hidden min-[380px]:block text-left">
+          <span className="hidden min-[380px]:block lg:hidden xl:block text-left">
             <span className="block font-bold tracking-tight text-[15px] text-white">Encryptoverse</span>
             <span className="hidden 2xl:block text-[11px] text-slate-400 -mt-0.5">Market intelligence &amp; ICO radar</span>
           </span>
@@ -166,7 +166,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={toggleSound}
             aria-label={soundOn ? 'Mute interface sounds' : 'Enable interface sounds'}
             aria-pressed={soundOn}
-            className="hidden sm:flex w-10 h-10 items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="hidden sm:flex lg:hidden xl:flex w-10 h-10 items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition"
           >
             {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>

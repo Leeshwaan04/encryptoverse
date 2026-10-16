@@ -68,11 +68,11 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
         const r = section.getBoundingClientRect();
         const x = (e.clientX - r.left) / r.width - 0.5;
         const y = (e.clientY - r.top) / r.height - 0.5;
-        wrap.style.transform = `translate3d(${(-x * 26).toFixed(1)}px, ${(-y * 16).toFixed(1)}px, 0) scale(1.07)`;
+        wrap.style.transform = `translate3d(${(-x * 18).toFixed(1)}px, ${(-y * 10).toFixed(1)}px, 0) scale(1.03)`;
       });
     };
     const onLeave = () => {
-      wrap.style.transform = 'translate3d(0,0,0) scale(1.07)';
+      wrap.style.transform = 'translate3d(0,0,0) scale(1.03)';
     };
     section.addEventListener('pointermove', onMove);
     section.addEventListener('pointerleave', onLeave);
@@ -121,18 +121,18 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
   return (
     <section ref={sectionRef} className="relative isolate w-full overflow-hidden bg-[#07090e] border-b border-slate-800/70" aria-label="Encryptoverse introduction">
       {/* Background video (poster shown first, video fades in once playable) */}
-      <div ref={videoWrapRef} className="absolute inset-x-0 top-0 h-[68%] lg:inset-0 lg:h-auto -z-20 will-change-transform transition-transform duration-300 ease-out" style={{ transform: 'scale(1.07)' }}>
+      <div ref={videoWrapRef} className="absolute inset-x-0 top-0 h-[68%] lg:inset-y-0 lg:left-[30%] lg:right-0 lg:h-auto -z-20 will-change-transform transition-transform duration-300 ease-out lg:[mask-image:linear-gradient(to_right,transparent_0%,black_32%)] lg:[-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_32%)]" style={{ transform: 'scale(1.03)' }}>
         <img
           src="/media/hero-galaxy-poster.jpg"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover object-[66%_center] lg:object-[68%_center]"
+          className="absolute inset-0 w-full h-full object-cover object-[66%_center] lg:object-[62%_center]"
           fetchPriority="high"
         />
         {allowVideo && (
           <video
             ref={videoRef}
-            className={`absolute inset-0 w-full h-full object-cover object-[66%_center] lg:object-[68%_center] transition-opacity duration-1000 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute inset-0 w-full h-full object-cover object-[66%_center] lg:object-[62%_center] transition-opacity duration-1000 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
             poster="/media/hero-galaxy-poster.jpg"
             autoPlay
             muted
@@ -150,7 +150,7 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
       </div>
 
       {/* Legibility + blending overlays */}
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(7,9,14,0.15)_0%,rgba(7,9,14,0)_30%,#07090e_62%)] lg:bg-none lg:bg-gradient-to-r lg:from-[#07090e] lg:via-[#07090e]/90 lg:via-50% lg:to-transparent" />
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(7,9,14,0.15)_0%,rgba(7,9,14,0)_30%,#07090e_62%)] lg:bg-none lg:bg-gradient-to-r lg:from-[#07090e] lg:via-[#07090e]/40 lg:via-30% lg:to-transparent" />
       <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-[#07090e] to-transparent" />
       <div className="hero-glow pointer-events-none absolute -left-24 top-1/3 -z-10 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
 
@@ -167,7 +167,7 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
           <h1 className="hero-rise text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-white" style={delay(0.15)}>
             The crypto market,
             <br />
-            <span className="bg-gradient-to-r from-cyan-300 via-sky-400 to-indigo-400 bg-clip-text text-transparent">in one clear view.</span>
+            <span className="bg-gradient-to-r from-cyan-300 via-sky-400 to-indigo-400 bg-clip-text text-transparent [text-shadow:none]">in one clear view.</span>
           </h1>
 
           <p className="hero-rise text-sm sm:text-base text-slate-300/90 leading-relaxed max-w-lg" style={delay(0.3)}>
