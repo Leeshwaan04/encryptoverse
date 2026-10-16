@@ -72,3 +72,35 @@
 .glow-emerald {
   box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
 }
+
+/* ---------- Hero ---------- */
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(18px); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes hero-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes hero-glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.08); }
+}
+.hero-rise {
+  opacity: 0;
+  animation: hero-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--d, 0s);
+}
+.hero-marquee-track {
+  animation: hero-marquee 60s linear infinite;
+}
+.hero-marquee:hover .hero-marquee-track {
+  animation-play-state: paused;
+}
+.hero-glow {
+  animation: hero-glow 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise { animation: none; opacity: 1; }
+  .hero-marquee-track, .hero-glow { animation: none; }
+}

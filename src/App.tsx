@@ -11,6 +11,7 @@ import { PortfolioWatchlist } from './components/PortfolioWatchlist';
 import { CryptoConverter } from './components/CryptoConverter';
 import { WalletModal } from './components/WalletModal';
 import { Footer } from './components/Footer';
+import { Hero } from './components/Hero';
 import { cryptoTokens, globalMarketStats, type CryptoToken } from './data/cryptoData';
 import {
   fetchLiveCryptoTokens,
@@ -165,11 +166,23 @@ export function App() {
         </div>
       )}
 
+      {activeTab === 'markets' && (
+        <Hero
+          tokens={tokens}
+          stats={marketStats}
+          currency={selectedCurrency}
+          isLive={isLiveFeed}
+          onSelectToken={setSelectedToken}
+          onOpenConverter={() => setActiveTab('converter')}
+        />
+      )}
+
       {/* 3. Main Content Router */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-8 min-w-0">
         {/* View: Markets (Default Home) */}
         {activeTab === 'markets' && (
           <div className="space-y-6">
+            <div id="markets" className="scroll-mt-24" />
             {/* Highlights row */}
             <MarketHighlights
               tokens={tokens}
