@@ -46,5 +46,5 @@ export const onRequestGet = (ctx: Ctx) =>
       .sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''))
       .slice(0, 24);
     if (items.length === 0) throw new Error('No news feeds reachable');
-    return { items, sources: FEEDS.map((f) => f.source) };
+    return { data: { items, sources: FEEDS.map((f) => f.source) }, source: FEEDS.map((f) => f.source).join(' · ') };
   });

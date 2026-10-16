@@ -24,15 +24,21 @@ export function json(body: unknown, status = 200, extra: Record<string, string> 
   return new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...extra } });
 }
 
+export interface Produced {
+  data: unknown;
+  /** Human-readable name of the provider(s) that supplied the data, shown as attribution in the UI. */
+  source?: string;
+}
+
 /**
  * Serve from edge cache when fresh; otherwise call `produce`, store the result
- * (fresh + long-lived stale copy) and return it. If the upstream fails, serve
+ * (fresh + long-lived stale copy) and return it. If every upstream fails, serve
  * the stale copy (flagged with X-Stale) instead of an error whenever possible.
  */
 export async function cached(
   ctx: Ctx,
   ttlSeconds: number,
-  produce: () => Promise<unknown>,
+  produce: () => Promise<Produced>,
   staleSeconds = 6 * 3600,
 ): Promise<Response> {
   const cache = edgeCache();
@@ -43,9 +49,9 @@ export async function cached(
   if (hit) return hit;
 
   try {
-    const data = await produce();
+    const { data, source } = await produce();
     const fetchedAt = new Date().toISOString();
-    const body = JSON.stringify({ fetchedAt, data });
+    const body = JSON.stringify({ fetchedAt, source, data });
     const headers = {
       ...JSON_HEADERS,
       'Cache-Control': `public, max-age=${Math.min(ttlSeconds, 30)}, s-maxage=${ttlSeconds}`,
@@ -68,7 +74,8 @@ export async function cached(
       return new Response(stale.body, { headers: h });
     }
     const message = err instanceof Error ? err.message : 'Upstream unavailable';
-    return json({ error: message }, 502, { 'Cache-Control': 'no-store' });
+    // 503 rather than 502: Cloudflare replaces Worker 502/504 bodies with a generic error page.
+    return json({ error: message }, 503, { 'Cache-Control': 'no-store' });
   }
 }
 

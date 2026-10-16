@@ -113,14 +113,14 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
   const [chart, setChart] = useState<ChartState>({ status: 'loading' });
   const [copied, setCopied] = useState(false);
 
-  const { id: tokenId, sparkline } = token;
+  const { id: tokenId, sparkline, symbol } = token;
 
   useEffect(() => {
     const controller = new AbortController();
     setChart({ status: 'loading' });
 
     const load = isLive
-      ? fetchPriceHistory(tokenId, currency, range, controller.signal)
+      ? fetchPriceHistory(tokenId, currency, range, controller.signal, symbol)
       : Promise.resolve(null);
 
     void load.then((prices) => {
@@ -132,7 +132,7 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
     });
 
     return () => controller.abort();
-  }, [tokenId, currency, range, isLive, sparkline]);
+  }, [tokenId, currency, range, isLive, sparkline, symbol]);
 
   const share = async () => {
     try {

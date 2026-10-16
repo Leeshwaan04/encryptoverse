@@ -84,26 +84,38 @@ export const INFO_PAGES: InfoPageDef[] = [
             </tbody>
           </table>
         </div>
+        <H2>How data is fetched</H2>
+        <UL>
+          <li>
+            Requests go through the Encryptoverse edge API, which tries several providers in turn and uses the first that answers, so no single
+            provider is a point of failure. The source currently in use is named on the page (for example in the hero banner).
+          </li>
+          <li>Market data: CoinLore, with sparklines from DefiLlama. If a CoinGecko API key is configured it is tried first. If everything fails, your browser falls back to calling CoinGecko directly, then to your last cached data, and the page says so.</li>
+          <li>Price history: Binance public candles, then Coinbase Exchange, then DefiLlama.</li>
+        </UL>
         <H2>Refresh rates</H2>
         <UL>
-          <li>Prices and market data: cached at the edge for up to 60 seconds, so values can be up to about a minute old.</li>
-          <li>Global totals: up to 2 minutes. Fear &amp; Greed: up to 15 minutes (the index itself updates daily). Gas price: up to 30 seconds. News: up to 5 minutes.</li>
-          <li>If a provider is unavailable we show the last data your browser received, labelled as cached, or an explicit notice. We do not invent values.</li>
+          <li>Market data: cached at the edge for up to 2 minutes. Global totals: 5 minutes. Price history: up to 10 minutes. DeFi overview: 10 minutes. New pools: 5 minutes. News: 5 minutes. Gas: 30 seconds. Fear &amp; Greed: 15 minutes (the index itself updates daily).</li>
+          <li>If a provider is unavailable we show the last data we received, labelled as cached, or an explicit notice. We do not invent values.</li>
         </UL>
         <H2>How specific figures are calculated</H2>
         <UL>
-          <li><strong>Coin list and ranking:</strong> the 50 largest assets by market capitalisation as ranked by CoinGecko.</li>
-          <li><strong>24h volume in the top ticker:</strong> the sum of 24h volume across those 50 coins, labelled “Top 50”. CoinGecko’s own global volume field is not used because it is not reliable.</li>
+          <li><strong>Coin list and ranking:</strong> the 50 largest assets by market capitalisation as ranked by the data provider.</li>
+          <li><strong>24h volume in the top ticker:</strong> the sum of 24h volume across those 50 coins, labelled “top 50”. Providers’ own global-volume fields are not used because they are unreliable.</li>
           <li><strong>Most traded / gainers / losers:</strong> the same 50 coins sorted by 24h volume or 24h price change. Nothing is hand-picked.</li>
           <li><strong>Categories</strong> (Layer 1, DeFi, Meme, etc.) are assigned by Encryptoverse using a keyword list on each coin’s name and symbol. They are a convenience filter, not an authoritative classification, and some coins may be mis-categorised.</li>
-          <li><strong>Price history charts:</strong> CoinGecko historical prices for 1 day, 7 days, 1 month and 1 year (the limit of the free data tier), thinned to at most about 120 points for display.</li>
+          <li><strong>Price history charts:</strong> exchange candle closes for 1 day, 7 days, 1 month and 1 year, thinned to at most about 120 points. USDT-quoted pairs are treated as USD.</li>
+          <li><strong>Other currencies:</strong> EUR and GBP use the latest ECB reference rate. BTC and ETH quotes divide by the BTC/ETH price (at the same timestamp for charts). Percentage changes are always USD-based.</li>
           <li><strong>Converter:</strong> uses the same live prices; the rate shown is simply price ÷ price and excludes exchange fees and spreads.</li>
-          <li><strong>Other currencies:</strong> converted by CoinGecko, not by us.</li>
+          <li><strong>DeFi view:</strong> chain TVL and stablecoin supply are DefiLlama’s figures. Governance proposals are public on Snapshot; anyone can create one, so inclusion is not an endorsement.</li>
+          <li><strong>New pools:</strong> pools created in the last hours on any chain, taken from GeckoTerminal. They have not been reviewed by us and are extremely high risk.</li>
         </UL>
         <H2>Known limitations</H2>
         <UL>
           <li>Prices are aggregated market data, not the executable price on any particular exchange.</li>
-          <li>Only 50 assets are covered. Smaller or newly launched tokens are not listed.</li>
+          <li>Only 50 assets are covered. Smaller or newly launched tokens appear only in the New pools list.</li>
+          <li>All-time high / low figures are shown only when the active provider supplies them (some do not).</li>
+          <li>A few coins have no sparkline or exchange candles; their charts fall back to other sources or show as unavailable.</li>
           <li>The gas figure is the network’s current suggested price, not a guarantee of what a transaction will cost.</li>
           <li>News headlines are written by their publishers. Inclusion is not an endorsement.</li>
         </UL>

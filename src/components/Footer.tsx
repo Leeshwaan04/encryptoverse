@@ -102,13 +102,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
           <div className="space-y-3">
             <h2 className="font-bold uppercase tracking-wider text-[11px] text-amber-100">Data by</h2>
             <ul className="space-y-2">
-              {DATA_SOURCES.map((s) => (
+              {DATA_SOURCES.filter((s) => s.primary).map((s) => (
                 <li key={s.name}>
                   <a href={s.href} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 ${linkCls}`}>
                     {s.name} <ExternalLink className="h-3 w-3 opacity-60" />
                   </a>
                 </li>
               ))}
+              <li>
+                <a href="/methodology" onClick={go('/methodology')} className={`${linkCls} underline underline-offset-2`}>
+                  All sources
+                </a>
+              </li>
             </ul>
           </div>
         </div>

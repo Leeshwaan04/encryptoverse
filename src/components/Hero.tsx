@@ -10,6 +10,8 @@ interface HeroProps {
   fearGreed: FearGreedResult | null;
   currency: Currency;
   isLive: boolean;
+  /** Provider(s) that supplied the current figures. */
+  source: string;
   onSelectToken: (token: CryptoToken) => void;
   onOpenConverter: () => void;
 }
@@ -45,7 +47,7 @@ function useCountUp(target: number, duration = 1100): number {
 
 const formatTrillions = (n: number) => `$${(n / 1e12).toFixed(2)}T`;
 
-export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, isLive, onSelectToken, onOpenConverter }) => {
+export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, isLive, source, onSelectToken, onOpenConverter }) => {
   const sectionRef = useRef<HTMLElement>(null);
   const videoWrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -161,7 +163,7 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
               <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${isLive ? 'animate-ping bg-emerald-400' : 'bg-amber-400'}`} />
               <span className={`relative inline-flex h-2 w-2 rounded-full ${isLive ? 'bg-emerald-400' : 'bg-amber-400'}`} />
             </span>
-            {isLive ? 'Live data · CoinGecko · refreshed every minute' : 'Live feed unavailable · showing snapshot'}
+            {isLive ? `Live data · ${source}` : 'Live feed unavailable · showing snapshot'}
           </div>
 
           <h1 className="hero-rise text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-white" style={delay(0.15)}>

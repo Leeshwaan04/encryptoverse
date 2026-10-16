@@ -107,9 +107,10 @@ function classifyCategory(id: string, symbol: string): CryptoToken['category'] {
 }
 
 /** Evenly sample the 7-day series; keeps sparklines cheap but still shaped like the real curve. */
-function sampleSparkline(prices: number[] | null | undefined, fallback: number): number[] {
+function sampleSparkline(prices: number[] | null | undefined): number[] {
   const clean = (prices ?? []).filter((n) => Number.isFinite(n));
-  if (clean.length < 2) return Number.isFinite(fallback) ? [fallback, fallback] : [0, 0];
+  // No history available: return nothing rather than a flat line that would imply "no movement".
+  if (clean.length < 2) return [];
   if (clean.length <= SPARKLINE_POINTS) return clean;
   const step = (clean.length - 1) / (SPARKLINE_POINTS - 1);
   return Array.from({ length: SPARKLINE_POINTS }, (_, i) => clean[Math.round(i * step)]);
@@ -165,7 +166,7 @@ async function getProxied<T>(
   directUrl: string,
   signal?: AbortSignal,
   fromDirect: (raw: unknown) => T = (raw) => raw as T
-): Promise<{ data: T; viaProxy: boolean }> {
+): Promise<{ data: T; viaProxy: boolean; source: string }> {
   try {
     if (!EDGE_PROXY_ENABLED) throw new Error('edge proxy disabled');
     const timeout = AbortSignal.timeout(TIMEOUT_MS);
@@ -174,13 +175,15 @@ async function getProxied<T>(
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     });
     if (res.ok && (res.headers.get('content-type') ?? '').includes('application/json')) {
-      const body = (await res.json()) as { data?: T } | null;
-      if (body && body.data !== undefined && body.data !== null) return { data: body.data, viaProxy: true };
+      const body = (await res.json()) as { data?: T; source?: string } | null;
+      if (body && body.data !== undefined && body.data !== null) {
+        return { data: body.data, viaProxy: true, source: typeof body.source === 'string' ? body.source.slice(0, 60) : 'Encryptoverse API' };
+      }
     }
   } catch (err) {
     if (signal?.aborted) throw err;
   }
-  return { data: fromDirect(await getJson<unknown>(directUrl, signal)), viaProxy: false };
+  return { data: fromDirect(await getJson<unknown>(directUrl, signal)), viaProxy: false, source: 'CoinGecko' };
 }
 
 const readCache = <T>(key: string, ttl: number): T | null => {
@@ -208,6 +211,8 @@ export interface LiveMarketResult {
   isLive: boolean;
   isCached: boolean;
   lastUpdated: Date;
+  /** Which provider(s) supplied the figures, for attribution. */
+  source?: string;
   error?: string;
 }
 
@@ -229,7 +234,7 @@ export async function fetchLiveCryptoTokens(
     const url =
       `${API_BASE}/coins/markets?vs_currency=${encodeURIComponent(curr)}` +
       '&order=market_cap_desc&per_page=50&page=1&sparkline=true&price_change_percentage=1h%2C24h%2C7d';
-    const { data } = await getProxied<CoinGeckoMarketItem[]>(`/markets?currency=${encodeURIComponent(curr)}`, url, signal);
+    const { data, source } = await getProxied<CoinGeckoMarketItem[]>(`/markets?currency=${encodeURIComponent(curr)}`, url, signal);
     if (!Array.isArray(data) || data.length === 0) throw new Error('CoinGecko returned an empty market list');
 
     // Drop entries without the fields the UI depends on, rather than rendering NaN.
@@ -255,7 +260,7 @@ export async function fetchLiveCryptoTokens(
           circulatingSupply: num(item.circulating_supply),
           maxSupply: Number.isFinite(item.max_supply) ? (item.max_supply as number) : Number.isFinite(item.total_supply) ? (item.total_supply as number) : null,
           category: classifyCategory(id, symbol),
-          sparkline: sampleSparkline(item.sparkline_in_7d?.price, price),
+          sparkline: sampleSparkline(item.sparkline_in_7d?.price),
           ath: num(item.ath),
           athDate: formatDate(item.ath_date),
           atl: num(item.atl),
@@ -269,7 +274,7 @@ export async function fetchLiveCryptoTokens(
     if (tokens.length === 0) throw new Error('No usable entries in the CoinGecko response');
 
     writeCache(cacheKey, { tokens, at: Date.now() });
-    return { tokens, isLive: true, isCached: false, lastUpdated: new Date() };
+    return { tokens, isLive: true, isCached: false, lastUpdated: new Date(), source };
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === 'AbortError') throw err;
 
@@ -390,7 +395,8 @@ export async function fetchPriceHistory(
   id: string,
   currency: string,
   range: ChartRange,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  symbol?: string
 ): Promise<number[] | null> {
   const key = `encryptoverse_chart_v1_${id}_${currency}_${range}`;
   const cached = readCache<number[]>(key, CHART_TTL_MS);
@@ -401,7 +407,7 @@ export async function fetchPriceHistory(
       `${API_BASE}/coins/${encodeURIComponent(id)}/market_chart` +
       `?vs_currency=${encodeURIComponent(currency.toLowerCase())}&days=${RANGE_DAYS[range]}`;
     const { data: json } = await getProxied<{ points?: [number, number][] }>(
-      `/chart?id=${encodeURIComponent(id)}&days=${RANGE_DAYS[range]}&currency=${encodeURIComponent(currency.toLowerCase())}`,
+      `/chart?id=${encodeURIComponent(id)}&symbol=${encodeURIComponent(symbol ?? '')}&days=${RANGE_DAYS[range]}&currency=${encodeURIComponent(currency.toLowerCase())}`,
       url,
       signal,
       (raw) => ({ points: (raw as { prices?: [number, number][] } | null)?.prices })
@@ -416,4 +422,55 @@ export async function fetchPriceHistory(
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------- DeFi and new pools (edge proxy only)
+
+export interface DefiSnapshot {
+  totalTvl: number;
+  chains: { name: string; symbol: string | null; tvl: number; share: number }[];
+  stablecoins: { total: number; chains: { name: string; circulating: number }[] };
+  governance: { title: string; space: string; endsAt: string; url: string }[];
+}
+
+export interface NewPool {
+  name: string;
+  network: string;
+  dex: string;
+  createdAt: string | null;
+  priceUsd: number;
+  liquidityUsd: number;
+  fdvUsd: number | null;
+  change24h: number;
+  volume24hUsd: number;
+  txns24h: number;
+  url: string;
+}
+
+async function proxyOnly<T>(path: string, signal?: AbortSignal): Promise<{ data: T; fetchedAt: string; source: string } | null> {
+  if (!EDGE_PROXY_ENABLED) return null;
+  try {
+    const res = await fetch(`${PROXY_BASE}${path}`, { headers: { Accept: 'application/json' }, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS) });
+    if (!res.ok || !(res.headers.get('content-type') ?? '').includes('application/json')) return null;
+    const body = (await res.json()) as { data?: T; fetchedAt?: string; source?: string };
+    if (body.data === undefined || body.data === null) return null;
+    return { data: body.data, fetchedAt: body.fetchedAt ?? '', source: typeof body.source === 'string' ? body.source.slice(0, 60) : '' };
+  } catch {
+    return null;
+  }
+}
+
+/** Only https links from the API are ever rendered as hrefs. */
+const httpsOnly = (u: unknown): string => (typeof u === 'string' && u.startsWith('https://') ? u : '');
+
+export async function fetchDefi(signal?: AbortSignal) {
+  const r = await proxyOnly<DefiSnapshot>('/defi', signal);
+  if (!r) return null;
+  return { ...r, data: { ...r.data, governance: (r.data.governance ?? []).map((g) => ({ ...g, url: httpsOnly(g.url) })).filter((g) => g.url) } };
+}
+
+export async function fetchNewPools(signal?: AbortSignal) {
+  const r = await proxyOnly<{ pools: NewPool[] }>('/pools', signal);
+  if (!r) return null;
+  return { ...r, data: { pools: (r.data.pools ?? []).map((p) => ({ ...p, url: httpsOnly(p.url) })).filter((p) => p.url) } };
 }

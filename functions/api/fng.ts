@@ -11,11 +11,14 @@ export const onRequestGet = (ctx: Ctx) =>
     if (rows.length < 2) throw new Error('Fear & Greed returned no data');
     const pick = (i: number) => (rows[i] ? { value: Number(rows[i].value), label: rows[i].value_classification } : null);
     return {
+      data: {
       now: pick(0),
       yesterday: pick(1),
       lastWeek: pick(7),
       lastMonth: pick(30),
       asOf: new Date(Number(rows[0].timestamp) * 1000).toISOString(),
+      source: 'alternative.me',
+      },
       source: 'alternative.me',
     };
   });

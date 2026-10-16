@@ -11,10 +11,26 @@ export const SITE = {
   lastUpdated: 'October 16, 2026',
 } as const;
 
-export const DATA_SOURCES = [
-  { name: 'CoinGecko', what: 'Prices, market cap, volume, supply, price history, global market totals', href: 'https://www.coingecko.com' },
-  { name: 'alternative.me', what: 'Crypto Fear & Greed Index and its history', href: 'https://alternative.me/crypto/fear-and-greed-index/' },
-  { name: 'Ethereum JSON-RPC', what: 'Current Ethereum mainnet gas price (eth_gasPrice)', href: 'https://ethereum.org/en/developers/docs/apis/json-rpc/' },
-  { name: 'CoinDesk', what: 'News headlines (RSS), linked to the original article', href: 'https://www.coindesk.com' },
-  { name: 'Cointelegraph', what: 'News headlines (RSS), linked to the original article', href: 'https://cointelegraph.com' },
-] as const;
+export interface DataSource {
+  name: string;
+  what: string;
+  href: string;
+  /** Listed in the footer. Every source is listed on the Methodology page regardless. */
+  primary: boolean;
+}
+
+export const DATA_SOURCES: readonly DataSource[] = [
+  { name: 'CoinLore', what: 'Coin list: prices, market cap, 24h volume, supply, 1h/24h/7d change and rank; global market totals', href: 'https://www.coinlore.com/cryptocurrency-data-api', primary: true },
+  { name: 'DefiLlama', what: '7-day sparklines, long-range price history, chain TVL and stablecoin supply', href: 'https://defillama.com', primary: true },
+  { name: 'Binance', what: 'Price-history candles from the public market-data API (no account or key)', href: 'https://developers.binance.com/docs/binance-spot-api-docs/faqs/market_data_only', primary: true },
+  { name: 'Coinbase Exchange', what: 'Fallback price-history candles from the public API', href: 'https://docs.cdp.coinbase.com/exchange/introduction/welcome', primary: false },
+  { name: 'Frankfurter (ECB)', what: 'EUR and GBP exchange rates from European Central Bank reference data', href: 'https://frankfurter.dev', primary: false },
+  { name: 'GeckoTerminal', what: 'Newly created decentralised-exchange pools', href: 'https://www.geckoterminal.com', primary: true },
+  { name: 'Snapshot', what: 'Active governance proposals', href: 'https://snapshot.box', primary: false },
+  { name: 'alternative.me', what: 'Crypto Fear & Greed Index and its history', href: 'https://alternative.me/crypto/fear-and-greed-index/', primary: true },
+  { name: 'Ethereum JSON-RPC', what: 'Current Ethereum mainnet gas price (eth_gasPrice)', href: 'https://ethereum.org/en/developers/docs/apis/json-rpc/', primary: false },
+  { name: 'CoinDesk', what: 'News headlines (RSS), linked to the original article', href: 'https://www.coindesk.com', primary: true },
+  { name: 'Cointelegraph', what: 'News headlines (RSS), linked to the original article', href: 'https://cointelegraph.com', primary: true },
+  { name: 'Cryptocurrency Icons', what: 'Open-source (MIT) coin logos served via jsDelivr', href: 'https://github.com/spothq/cryptocurrency-icons', primary: false },
+  { name: 'CoinGecko', what: 'Optional: used for market data only when an API key is configured, and as a direct fallback', href: 'https://www.coingecko.com', primary: false },
+];

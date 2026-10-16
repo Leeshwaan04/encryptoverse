@@ -28,5 +28,5 @@ export const onRequestGet = (ctx: Ctx) =>
     const wei = await gasPriceWei();
     // Wei -> Gwei with 3 decimals, no float precision loss on the integer part
     const gwei = Number((wei * 1000n) / 1_000_000_000n) / 1000;
-    return { gwei, network: 'Ethereum mainnet', source: 'public JSON-RPC eth_gasPrice' };
+    return { data: { gwei, network: 'Ethereum mainnet' }, source: 'Ethereum JSON-RPC' };
   });

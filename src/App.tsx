@@ -8,6 +8,7 @@ import { TokenDetailModal } from './components/TokenDetailModal';
 import { IcoDropsRadar } from './components/IcoDropsRadar';
 import { TrendingMoversView } from './components/TrendingMoversView';
 import { CoinDeskNews } from './components/CoinDeskNews';
+import { DefiView } from './components/DefiView';
 import { PortfolioWatchlist } from './components/PortfolioWatchlist';
 import { CryptoConverter } from './components/CryptoConverter';
 import { WalletModal } from './components/WalletModal';
@@ -74,6 +75,7 @@ export function App() {
   const [marketStats, setMarketStats] = useState<typeof globalMarketStats>(globalMarketStats);
   const [fearGreed, setFearGreed] = useState<FearGreedResult | null>(null);
   const [gasGwei, setGasGwei] = useState<number | null>(null);
+  const [dataSource, setDataSource] = useState('CoinGecko');
   // Static info pages (About, Methodology, ...) live at their own paths; the app itself stays on "/".
   const [path, setPath] = useState(() => window.location.pathname);
   const infoPage = pageForPath(path);
@@ -109,6 +111,7 @@ export function App() {
     setIsCached(tokenRes.isCached);
     setFeedError(tokenRes.error);
     setLastUpdated(tokenRes.lastUpdated);
+    if (tokenRes.source) setDataSource(tokenRes.source);
     setIsLoading(false);
     void fetchGasGwei().then(setGasGwei);
   }, []);
@@ -244,6 +247,7 @@ export function App() {
           fearGreed={fearGreed}
           currency={currency}
           isLive={isLive}
+          source={dataSource}
           onSelectToken={openToken}
           onOpenConverter={() => selectTab('converter')}
         />
@@ -293,6 +297,8 @@ export function App() {
         {!infoPage && activeTab === 'trending' && (
           <TrendingMoversView tokens={tokens} currency={currency} onSelectToken={openToken} />
         )}
+
+        {!infoPage && activeTab === 'defi' && <DefiView />}
 
         {!infoPage && activeTab === 'watchlist' && (
           <PortfolioWatchlist
