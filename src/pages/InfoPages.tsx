@@ -48,6 +48,12 @@ export const INFO_PAGES: InfoPageDef[] = [
           {SITE.operator ? `Encryptoverse is operated by ${SITE.operator}.` : 'Encryptoverse is an independently run project.'} To report an
           error, request a correction or ask a question, {contactLine}.
         </P>
+        <H2>Credits</H2>
+        <UL>
+          <li>Background music (optional, off by default): “Experimental Cinematic Hip Hop” by Rockot, via <A href="https://pixabay.com/music/">Pixabay</A> under the Pixabay Content License.</li>
+          <li>The animation behind the home-page headline is AI-generated artwork.</li>
+          <li>Coin logos: the open-source <A href="https://github.com/spothq/cryptocurrency-icons">cryptocurrency-icons</A> set (MIT licence). Market data providers are listed on the <a className="text-cyan-400 underline" href="/methodology">Methodology</a> page.</li>
+        </UL>
         <H2>Corrections</H2>
         <P>
           If you find incorrect data or a misleading statement, tell us. Factual errors in our own code or copy are fixed promptly and the fix is

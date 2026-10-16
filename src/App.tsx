@@ -13,6 +13,7 @@ import { PortfolioWatchlist } from './components/PortfolioWatchlist';
 import { CryptoConverter } from './components/CryptoConverter';
 import { WalletModal } from './components/WalletModal';
 import { Footer } from './components/Footer';
+import { MusicToggle } from './components/MusicToggle';
 import { Hero } from './components/Hero';
 import { InfoPage } from './pages/InfoPage';
 import { pageForPath } from './pages/InfoPages';
@@ -340,6 +341,7 @@ export function App() {
       />
 
       <Footer onNavigate={navigateInfo} onSelectTab={selectTab} isLive={isLive} />
+      <MusicToggle />
     </div>
   );
 }
