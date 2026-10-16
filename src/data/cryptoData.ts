@@ -41,14 +41,12 @@ export interface IcoProject {
   interestHype: 'Very High' | 'High' | 'Medium';
   whitelist: boolean;
   kyc: boolean;
-  startDate: string;
-  endDate: string;
+  /** Offset in days from today; keeps sample timelines plausible instead of expiring. */
+  startsInDays: number;
+  endsInDays: number;
   roiUsd?: string;
   roiEth?: string;
   description: string;
-  website: string;
-  whitepaper: string;
-  twitter: string;
 }
 
 export interface MarketNews {
@@ -62,39 +60,24 @@ export interface MarketNews {
   url: string;
 }
 
-export interface FearGreedReading {
-  value: number;
-  label: string;
-}
-
 export interface GlobalStats {
   totalMarketCap: number;
   marketCapChange24h: number;
-  /** Sum of 24h volume across the top-50 coins we list (CoinGecko's /global volume field is unreliable). */
-  volume24h: number;
+  /** Sum of 24h volume across the top 50 coins, in USD. null when no trustworthy figure is available. */
+  volume24h: number | null;
   btcDominance: number;
   ethDominance: number;
   activeCryptos: number;
   exchangesCount: number;
-  /** null until a live reading is received — never shown as a made-up number. */
-  gasGwei: number | null;
-  fearGreed: {
-    now: FearGreedReading;
-    yesterday: FearGreedReading | null;
-    lastWeek: FearGreedReading | null;
-    lastMonth: FearGreedReading | null;
-  } | null;
 }
 
-// Offline snapshot used only when the live feed has never loaded. The UI marks it as not live.
+// Offline snapshot, used only when the live feed has never loaded. The UI labels it as sample data.
 export const globalMarketStats: GlobalStats = {
   totalMarketCap: 2648920150000,
   marketCapChange24h: 2.84,
   volume24h: 94820190000,
   btcDominance: 56.4,
   ethDominance: 15.2,
-  gasGwei: null,
-  fearGreed: null,
   activeCryptos: 14850,
   exchangesCount: 785,
 };
@@ -694,12 +677,9 @@ export const icoProjects: IcoProject[] = [
     interestHype: 'Very High',
     whitelist: false,
     kyc: true,
-    startDate: 'Oct 01, 2024',
-    endDate: 'Nov 15, 2024',
+    startsInDays: -21,
+    endsInDays: 25,
     description: 'Next-generation decentralized market intelligence, confidential compute, and verified launchpad network.',
-    website: 'https://encryptoverse.com',
-    whitepaper: 'https://encryptoverse.com/whitepaper.pdf',
-    twitter: 'https://x.com/encryptoverse',
   },
   {
     id: 'nexus-ai',
@@ -716,12 +696,9 @@ export const icoProjects: IcoProject[] = [
     interestHype: 'Very High',
     whitelist: true,
     kyc: true,
-    startDate: 'Oct 08, 2024',
-    endDate: 'Oct 25, 2024',
+    startsInDays: -13,
+    endsInDays: 9,
     description: 'Decentralized autonomous AI agent orchestration and inference verification network on Solana.',
-    website: 'https://nexusai.io',
-    whitepaper: 'https://nexusai.io/docs',
-    twitter: 'https://x.com/nexusai',
   },
   {
     id: 'aerodex-perp',
@@ -738,12 +715,9 @@ export const icoProjects: IcoProject[] = [
     interestHype: 'High',
     whitelist: false,
     kyc: false,
-    startDate: 'Oct 10, 2024',
-    endDate: 'Oct 28, 2024',
+    startsInDays: -11,
+    endsInDays: 12,
     description: 'Zero-slippage cross-margin perpetual exchange natively built on Base with deep liquidity pools.',
-    website: 'https://aerodex.exchange',
-    whitepaper: 'https://aerodex.exchange/whitepaper',
-    twitter: 'https://x.com/aerodex',
   },
   {
     id: 'hyperion-chain',
@@ -760,12 +734,9 @@ export const icoProjects: IcoProject[] = [
     interestHype: 'Very High',
     whitelist: true,
     kyc: true,
-    startDate: 'Nov 01, 2024',
-    endDate: 'Nov 20, 2024',
+    startsInDays: 16,
+    endsInDays: 35,
     description: 'High-throughput parallelized EVM execution Layer 2 featuring Celestia DA integration.',
-    website: 'https://hyperion.network',
-    whitepaper: 'https://hyperion.network/wp',
-    twitter: 'https://x.com/hyperionL2',
   },
   {
     id: 'solarpunk-depin',
@@ -782,12 +753,9 @@ export const icoProjects: IcoProject[] = [
     interestHype: 'High',
     whitelist: true,
     kyc: false,
-    startDate: 'Nov 12, 2024',
-    endDate: 'Dec 02, 2024',
+    startsInDays: 27,
+    endsInDays: 47,
     description: 'Decentralized green energy metering and microgrid incentive layer powered by Solana micropayments.',
-    website: 'https://solarpunk.energy',
-    whitepaper: 'https://solarpunk.energy/deck',
-    twitter: 'https://x.com/solarpunk_depin',
   },
   {
     id: 'sui-forge-gaming',
@@ -804,14 +772,11 @@ export const icoProjects: IcoProject[] = [
     interestHype: 'Very High',
     whitelist: true,
     kyc: true,
-    startDate: 'Aug 15, 2024',
-    endDate: 'Sep 05, 2024',
+    startsInDays: -62,
+    endsInDays: -41,
     roiUsd: '4.8x',
     roiEth: '3.6x',
     description: 'Web3 AAA game publishing ecosystem and asset interoperability SDK for Sui Network.',
-    website: 'https://suiforge.games',
-    whitepaper: 'https://suiforge.games/whitepaper',
-    twitter: 'https://x.com/suiforge',
   },
   {
     id: 'omni-zk-rollup',
@@ -828,14 +793,11 @@ export const icoProjects: IcoProject[] = [
     interestHype: 'Very High',
     whitelist: true,
     kyc: true,
-    startDate: 'Jul 10, 2024',
-    endDate: 'Jul 30, 2024',
+    startsInDays: -98,
+    endsInDays: -78,
     roiUsd: '8.2x',
     roiEth: '6.4x',
     description: 'Zero-knowledge cross-chain liquidity and message routing between all EVM and non-EVM chains.',
-    website: 'https://omnizk.network',
-    whitepaper: 'https://omnizk.network/whitepaper.pdf',
-    twitter: 'https://x.com/omnizk',
   },
 ];
 

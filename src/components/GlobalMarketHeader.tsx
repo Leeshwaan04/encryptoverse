@@ -1,155 +1,162 @@
 import React from 'react';
-import {
-  TrendingUp,
-  TrendingDown,
-  Fuel,
-  Activity,
-  DollarSign,
-  RefreshCw,
-  Wifi,
-  WifiOff
-} from 'lucide-react';
+import { Activity, RefreshCw, TrendingDown, TrendingUp, Wifi, WifiOff } from 'lucide-react';
 import { globalMarketStats } from '../data/cryptoData';
-import { cypherSound } from '../lib/crypto-utils';
+import type { FearGreedResult } from '../services/cryptoApi';
+import {
+  CURRENCIES,
+  changeColor,
+  cypherSound,
+  fearGreedColor,
+  formatCompact,
+  formatPercentage,
+  type Currency,
+} from '../lib/crypto-utils';
 
 interface GlobalMarketHeaderProps {
-  selectedCurrency: string;
-  onCurrencyChange: (currency: string) => void;
+  currency: Currency;
+  onCurrencyChange: (currency: Currency) => void;
   stats?: typeof globalMarketStats;
+  fearGreed?: FearGreedResult | null;
+  gasGwei?: number | null;
   isLive?: boolean;
   isCached?: boolean;
   isLoading?: boolean;
+  error?: string;
   onRefresh?: () => void;
   lastUpdated?: Date;
 }
 
+const Stat: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="flex items-center gap-1.5">
+    <span className="text-slate-400">{label}</span>
+    {children}
+  </div>
+);
+
 export const GlobalMarketHeader: React.FC<GlobalMarketHeaderProps> = ({
-  selectedCurrency,
+  currency,
   onCurrencyChange,
   stats = globalMarketStats,
+  fearGreed,
+  gasGwei = null,
   isLive = true,
   isCached = false,
   isLoading = false,
+  error,
   onRefresh,
   lastUpdated,
 }) => {
-  const currentStats = stats || globalMarketStats;
-  const fngTone = (v?: number) =>
-    v === undefined ? 'text-slate-400' : v < 25 ? 'text-rose-400' : v < 45 ? 'text-orange-400' : v < 55 ? 'text-amber-300' : 'text-emerald-400';
+  const change = stats.marketCapChange24h;
 
   return (
-    <div className="w-full max-w-full bg-[#05070b] border-b border-slate-800 text-[11px] font-mono text-slate-400 py-1.5 px-3 sm:px-6 lg:px-8 min-w-0 overflow-hidden">
-      <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4 overflow-x-auto no-scrollbar whitespace-nowrap min-w-0">
-        {/* Left Market Metrics */}
-        <div className="flex items-center gap-4 sm:gap-6">
-          {/* Live Feed Status Badge */}
-          <div className="flex items-center gap-2 pr-3 border-r border-slate-800">
+    <section
+      aria-label="Global market statistics"
+      className="w-full bg-[#05070b] border-b border-slate-800 text-xs text-slate-300 py-2 px-4 sm:px-6 lg:px-8"
+    >
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div className="flex items-center gap-5 overflow-x-auto no-scrollbar whitespace-nowrap min-w-0 tabular-nums">
+          <div className="flex items-center gap-1.5 pr-4 border-r border-slate-800" aria-live="polite">
             {isLive ? (
-              <span className="flex items-center gap-1.5 text-emerald-400 font-bold text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                <Wifi className="w-3 h-3 text-emerald-400" />
-                <span>{isCached ? 'CACHED' : 'LIVE API'}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span className="flex items-center gap-1.5 text-emerald-300 font-semibold text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25">
+                <Wifi className="w-3 h-3" aria-hidden="true" />
+                {isCached ? 'Cached' : 'Live'}
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 text-amber-400 font-bold text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
-                <WifiOff className="w-3 h-3 text-amber-400" />
-                <span>OFFLINE DATA</span>
+              // Never claim live data when the feed failed; say which it is.
+              <span
+                title={error}
+                className="flex items-center gap-1.5 text-amber-300 font-semibold text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25"
+              >
+                <WifiOff className="w-3 h-3" aria-hidden="true" />
+                {isLoading ? 'Connecting' : 'Sample data'}
               </span>
             )}
 
             {onRefresh && (
               <button
+                type="button"
                 onClick={() => {
                   cypherSound.playBlip(680, 'sine', 0.05);
                   onRefresh();
                 }}
                 disabled={isLoading}
-                title={lastUpdated ? `Last updated: ${lastUpdated.toLocaleTimeString()}` : 'Refresh feed'}
-                className="text-slate-500 hover:text-cyan-400 transition p-0.5 rounded disabled:opacity-40"
+                aria-label={lastUpdated ? `Refresh prices. Last updated ${lastUpdated.toLocaleTimeString()}` : 'Refresh prices'}
+                title={lastUpdated ? `Last updated ${lastUpdated.toLocaleTimeString()}` : 'Refresh'}
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-cyan-300 transition rounded disabled:opacity-40"
               >
-                <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin text-cyan-400' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-cyan-400' : ''}`} aria-hidden="true" />
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">Cryptos:</span>
-            <span className="text-cyan-400 font-bold">
-              {currentStats.activeCryptos.toLocaleString()}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">Exchanges:</span>
-            <span className="text-slate-300 font-bold">{currentStats.exchangesCount}</span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">Market Cap:</span>
-            <span className="text-slate-200 font-bold">
-              ${(currentStats.totalMarketCap / 1e12).toFixed(2)}T
-            </span>
-            <span className={`font-bold flex items-center text-[10px] ${currentStats.marketCapChange24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {currentStats.marketCapChange24h >= 0 ? (
-                <TrendingUp className="w-3 h-3 inline mr-0.5" />
+          <Stat label="Market cap">
+            <span className="text-white font-semibold">{formatCompact(stats.totalMarketCap, 'USD')}</span>
+            <span className={`font-semibold flex items-center ${changeColor(change)}`}>
+              {change >= 0 ? (
+                <TrendingUp className="w-3 h-3 mr-0.5" aria-hidden="true" />
               ) : (
-                <TrendingDown className="w-3 h-3 inline mr-0.5" />
+                <TrendingDown className="w-3 h-3 mr-0.5" aria-hidden="true" />
               )}
-              {currentStats.marketCapChange24h >= 0 ? '+' : ''}
-              {currentStats.marketCapChange24h}%
+              {formatPercentage(change)}
             </span>
-          </div>
+          </Stat>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">24h Vol (Top 50):</span>
-            <span className="text-slate-200 font-bold">
-              ${(currentStats.volume24h / 1e9).toFixed(1)}B
-            </span>
-          </div>
+          {stats.volume24h !== null && (
+            <Stat label="24h volume (top 50)">
+              <span className="text-white font-semibold">{formatCompact(stats.volume24h, 'USD')}</span>
+            </Stat>
+          )}
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">Dominance:</span>
-            <span className="text-slate-300">
-              BTC <strong className="text-amber-400">{currentStats.btcDominance}%</strong>
+          <Stat label="Dominance">
+            <span>
+              BTC <strong className="text-amber-300 font-semibold">{stats.btcDominance}%</strong>
             </span>
-            <span className="text-slate-300">
-              ETH <strong className="text-cyan-400">{currentStats.ethDominance}%</strong>
+            <span>
+              ETH <strong className="text-cyan-300 font-semibold">{stats.ethDominance}%</strong>
             </span>
-          </div>
+          </Stat>
 
-          <div className="flex items-center gap-1.5">
-            <Fuel className="w-3 h-3 text-cyan-400" />
-            <span className="text-slate-500">Gas:</span>
-            <span className="text-cyan-300 font-bold">
-              {currentStats.gasGwei === null ? '—' : `${currentStats.gasGwei < 1 ? currentStats.gasGwei.toFixed(3) : currentStats.gasGwei.toFixed(1)} Gwei`}
-            </span>
-          </div>
+          {fearGreed && (
+            <div className="flex items-center gap-1.5">
+              <Activity className="w-3 h-3 text-slate-400" aria-hidden="true" />
+              <span className="text-slate-400">Fear &amp; Greed</span>
+              <span className={`font-semibold ${fearGreedColor(fearGreed.now.value)}`}>
+                {fearGreed.now.value} · {fearGreed.now.label}
+              </span>
+            </div>
+          )}
 
-          <div className="flex items-center gap-1.5">
-            <Activity className="w-3 h-3 text-emerald-400" />
-            <span className="text-slate-500">Fear & Greed:</span>
-            <span className={`font-bold ${fngTone(currentStats.fearGreed?.now.value)}`}>
-              {currentStats.fearGreed ? `${currentStats.fearGreed.now.value}/100 (${currentStats.fearGreed.now.label})` : '—'}
-            </span>
-          </div>
+          {gasGwei !== null && (
+            <Stat label="ETH gas">
+              <span className="text-cyan-300 font-semibold">
+                {gasGwei < 1 ? gasGwei.toFixed(3) : gasGwei.toFixed(1)} Gwei
+              </span>
+            </Stat>
+          )}
+
+          <Stat label="Coins">
+            <span className="text-white font-semibold">{stats.activeCryptos.toLocaleString('en-US')}</span>
+          </Stat>
         </div>
 
-        {/* Currency Switcher */}
-        <div className="flex items-center gap-2 pl-4 border-l border-slate-800">
-          <DollarSign className="w-3 h-3 text-slate-500" />
+        <div className="flex items-center gap-2 pl-4 border-l border-slate-800 shrink-0">
+          <label htmlFor="currency-select" className="sr-only">
+            Display currency
+          </label>
           <select
-            value={selectedCurrency}
-            onChange={(e) => onCurrencyChange(e.target.value)}
-            className="bg-transparent text-slate-300 hover:text-white focus:outline-none cursor-pointer font-bold text-[11px]"
+            id="currency-select"
+            value={currency}
+            onChange={(e) => onCurrencyChange(e.target.value as Currency)}
+            className="bg-slate-900 border border-slate-800 rounded-md px-2 h-8 text-slate-200 hover:text-white focus:outline-none focus:border-cyan-500 cursor-pointer font-semibold text-xs"
           >
-            <option value="USD" className="bg-slate-900 text-slate-200">USD ($)</option>
-            <option value="EUR" className="bg-slate-900 text-slate-200">EUR (€)</option>
-            <option value="GBP" className="bg-slate-900 text-slate-200">GBP (£)</option>
-            <option value="BTC" className="bg-slate-900 text-slate-200">BTC (₿)</option>
-            <option value="ETH" className="bg-slate-900 text-slate-200">ETH (Ξ)</option>
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

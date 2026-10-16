@@ -1,10 +1,11 @@
 import React from 'react';
 import { ArrowUp, ExternalLink, Layers } from 'lucide-react';
 import { DATA_SOURCES, SITE } from '../config/site';
+import type { TabId } from '../lib/navTabs';
 
 interface FooterProps {
   onNavigate: (to: string) => void;
-  onSelectTab: (tabId: string) => void;
+  onSelectTab: (tabId: TabId) => void;
   isLive: boolean;
 }
 
@@ -22,7 +23,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
     e.preventDefault();
     onNavigate(to);
   };
-  const tab = (id: string) => (e: React.MouseEvent) => {
+  const tab = (id: TabId) => (e: React.MouseEvent) => {
     e.preventDefault();
     onSelectTab(id);
   };
@@ -67,7 +68,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
 
           {/* Markets */}
           <nav aria-label="Markets" className="space-y-3">
-            <h3 className="font-bold uppercase tracking-wider text-[11px] text-amber-100">Markets</h3>
+            <h2 className="font-bold uppercase tracking-wider text-[11px] text-amber-100">Markets</h2>
             <ul className="space-y-2">
               <li><a href="/" onClick={tab('markets')} className={linkCls}>Cryptocurrencies</a></li>
               <li><a href="/" onClick={tab('trending')} className={linkCls}>Gainers &amp; losers</a></li>
@@ -79,7 +80,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
 
           {/* Company */}
           <nav aria-label="About" className="space-y-3">
-            <h3 className="font-bold uppercase tracking-wider text-[11px] text-amber-100">About</h3>
+            <h2 className="font-bold uppercase tracking-wider text-[11px] text-amber-100">About</h2>
             <ul className="space-y-2">
               <li><a href="/about" onClick={go('/about')} className={linkCls}>About us</a></li>
               <li><a href="/methodology" onClick={go('/methodology')} className={linkCls}>Methodology</a></li>
@@ -89,7 +90,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
 
           {/* Legal */}
           <nav aria-label="Legal" className="space-y-3">
-            <h3 className="font-bold uppercase tracking-wider text-[11px] text-amber-100">Legal</h3>
+            <h2 className="font-bold uppercase tracking-wider text-[11px] text-amber-100">Legal</h2>
             <ul className="space-y-2">
               <li><a href="/privacy" onClick={go('/privacy')} className={linkCls}>Privacy</a></li>
               <li><a href="/terms" onClick={go('/terms')} className={linkCls}>Terms</a></li>
@@ -99,7 +100,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
 
           {/* Data sources */}
           <div className="space-y-3">
-            <h3 className="font-bold uppercase tracking-wider text-[11px] text-amber-100">Data by</h3>
+            <h2 className="font-bold uppercase tracking-wider text-[11px] text-amber-100">Data by</h2>
             <ul className="space-y-2">
               {DATA_SOURCES.map((s) => (
                 <li key={s.name}>
@@ -113,7 +114,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
         </div>
 
         {/* Disclaimer & copyright */}
-        <div className="space-y-4 border-t border-white/10 pt-6 text-[11px] leading-relaxed text-slate-500">
+        <div className="space-y-4 border-t border-white/10 pt-6 text-[11px] leading-relaxed text-slate-400">
           <p>
             <strong className="text-slate-300">Risk warning:</strong> cryptoassets are highly volatile and you can lose all of the money you put in.
             Encryptoverse provides information only — not financial, investment, tax or legal advice. Data is sourced from third parties, may be

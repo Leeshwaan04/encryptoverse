@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, ArrowDown, Calculator } from 'lucide-react';
 import type { CryptoToken, GlobalStats } from '../data/cryptoData';
-import { cypherSound } from '../lib/crypto-utils';
+import type { FearGreedResult } from '../services/cryptoApi';
+import { changeColor, cypherSound, fearGreedColor, formatPercentage, formatPrice, type Currency } from '../lib/crypto-utils';
 
 interface HeroProps {
   tokens: CryptoToken[];
   stats: GlobalStats;
-  currency: string;
+  fearGreed: FearGreedResult | null;
+  currency: Currency;
   isLive: boolean;
   onSelectToken: (token: CryptoToken) => void;
   onOpenConverter: () => void;
@@ -43,19 +45,7 @@ function useCountUp(target: number, duration = 1100): number {
 
 const formatTrillions = (n: number) => `$${(n / 1e12).toFixed(2)}T`;
 
-function formatPrice(price: number, currency: string): string {
-  const digits = price < 1 ? 4 : 2;
-  try {
-    if (['USD', 'EUR', 'GBP'].includes(currency)) {
-      return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(price);
-    }
-  } catch {
-    // fall through
-  }
-  return `${price.toLocaleString(undefined, { maximumFractionDigits: price < 1 ? 6 : 4 })} ${currency}`;
-}
-
-export const Hero: React.FC<HeroProps> = ({ tokens, stats, currency, isLive, onSelectToken, onOpenConverter }) => {
+export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, isLive, onSelectToken, onOpenConverter }) => {
   const sectionRef = useRef<HTMLElement>(null);
   const videoWrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -117,8 +107,9 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, currency, isLive, onS
 
   const marketCap = useCountUp(stats.totalMarketCap);
   const btcDom = useCountUp(stats.btcDominance);
-  const fng = useCountUp(stats.fearGreed?.now.value ?? 0);
-  const ticker = tokens.slice(0, 14);
+  const fng = useCountUp(fearGreed?.now.value ?? 0);
+  // Stale sample figures are never shown as a live ticker.
+  const ticker = isLive ? tokens.slice(0, 14) : [];
 
   const scrollToMarket = () => {
     cypherSound.playBlip(600, 'sine', 0.04);
@@ -159,12 +150,12 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, currency, isLive, onS
       </div>
 
       {/* Legibility + blending overlays */}
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(7,9,14,0.15)_0%,rgba(7,9,14,0)_30%,#07090e_62%)] lg:bg-none lg:bg-gradient-to-r lg:from-[#07090e] lg:via-[#07090e]/70 lg:to-transparent" />
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(7,9,14,0.15)_0%,rgba(7,9,14,0)_30%,#07090e_62%)] lg:bg-none lg:bg-gradient-to-r lg:from-[#07090e] lg:via-[#07090e]/90 lg:via-50% lg:to-transparent" />
       <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-[#07090e] to-transparent" />
       <div className="hero-glow pointer-events-none absolute -left-24 top-1/3 -z-10 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[250px] pb-28 sm:pt-[300px] sm:pb-32 min-h-[520px] lg:min-h-[600px] lg:pt-24 lg:pb-36 flex flex-col justify-center">
-        <div className="max-w-xl lg:max-w-2xl space-y-5">
+        <div className="max-w-xl lg:max-w-2xl space-y-5 [text-shadow:0_1px_14px_rgba(7,9,14,0.95)]">
           <div className="hero-rise inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[11px] text-cyan-300 backdrop-blur" style={delay(0.05)}>
             <span className="relative flex h-2 w-2">
               <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${isLive ? 'animate-ping bg-emerald-400' : 'bg-amber-400'}`} />
@@ -197,7 +188,7 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, currency, isLive, onS
                 cypherSound.playBlip(640, 'sine', 0.04);
                 onOpenConverter();
               }}
-              className="group inline-flex items-center gap-2 rounded-xl border border-slate-600/60 bg-slate-900/50 px-5 py-2.5 font-mono text-xs font-bold text-slate-200 backdrop-blur transition hover:border-cyan-500/50 hover:text-white"
+              className="group inline-flex items-center gap-2 rounded-xl border border-slate-600/60 bg-[#07090e]/70 px-5 py-2.5 font-mono text-xs font-bold text-slate-200 backdrop-blur transition hover:border-cyan-500/50 hover:text-white"
             >
               <Calculator className="h-3.5 w-3.5 text-indigo-300" />
               Price converter
@@ -208,11 +199,11 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, currency, isLive, onS
           {/* Live stat glass cards */}
           <div className="hero-rise grid grid-cols-3 gap-2 sm:gap-3 pt-3 max-w-lg font-mono" style={delay(0.6)}>
             {[
-              { label: 'Market cap', value: formatTrillions(marketCap), sub: `${stats.marketCapChange24h >= 0 ? '+' : ''}${stats.marketCapChange24h}% 24h`, tone: stats.marketCapChange24h >= 0 ? 'text-emerald-400' : 'text-rose-400' },
-              { label: 'BTC dominance', value: `${btcDom.toFixed(1)}%`, sub: `ETH ${stats.ethDominance}%`, tone: 'text-slate-400' },
-              { label: 'Fear & Greed', value: stats.fearGreed ? `${Math.round(fng)}` : '—', sub: stats.fearGreed ? stats.fearGreed.now.label : 'unavailable', tone: 'text-amber-300' },
+              { label: 'Market cap', value: isLive ? formatTrillions(marketCap) : '—', sub: isLive ? formatPercentage(stats.marketCapChange24h) + ' 24h' : 'unavailable', tone: isLive ? changeColor(stats.marketCapChange24h) : 'text-slate-400' },
+              { label: 'BTC dominance', value: isLive ? `${btcDom.toFixed(1)}%` : '—', sub: isLive ? `ETH ${stats.ethDominance}%` : 'unavailable', tone: 'text-slate-400' },
+              { label: 'Fear & Greed', value: fearGreed ? `${Math.round(fng)}` : '—', sub: fearGreed ? fearGreed.now.label : 'unavailable', tone: fearGreed ? fearGreedColor(fearGreed.now.value) : 'text-slate-400' },
             ].map((s) => (
-              <div key={s.label} className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2 sm:px-3 sm:py-2.5 backdrop-blur-md">
+              <div key={s.label} className="rounded-xl border border-white/10 bg-[#07090e]/75 px-2.5 py-2 sm:px-3 sm:py-2.5 backdrop-blur-md">
                 <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-slate-400 truncate">{s.label}</div>
                 <div className="mt-0.5 text-sm sm:text-lg font-extrabold text-white tabular-nums">{s.value}</div>
                 <div className={`text-[9px] sm:text-[10px] ${s.tone} truncate`}>{s.sub}</div>
@@ -237,8 +228,8 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, currency, isLive, onS
                 <img src={t.icon} alt="" className="h-4 w-4 rounded-full" loading="lazy" />
                 <span className="font-bold">{t.symbol}</span>
                 <span className="tabular-nums text-slate-400">{formatPrice(t.price, currency)}</span>
-                <span className={`tabular-nums font-bold ${t.change24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {t.change24h >= 0 ? '▲' : '▼'} {Math.abs(t.change24h)}%
+                <span className={`tabular-nums font-bold ${changeColor(t.change24h)}`}>
+                  {t.change24h >= 0 ? '▲' : '▼'} {Math.abs(t.change24h).toFixed(2)}%
                 </span>
               </button>
             ))}

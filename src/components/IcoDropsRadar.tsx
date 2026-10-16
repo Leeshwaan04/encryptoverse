@@ -1,346 +1,279 @@
 import React, { useState } from 'react';
-import {
-  Flame,
-  Clock,
-  ExternalLink,
-  TrendingUp,
-  FileText,
-  Filter,
-  Globe,
-  ArrowRight
-} from 'lucide-react';
+import { ArrowRight, Clock, Inbox, Info, TrendingUp } from 'lucide-react';
 import { icoProjects, type IcoProject } from '../data/cryptoData';
 import { cypherSound } from '../lib/crypto-utils';
+import { Modal } from './Modal';
+
+type Status = IcoProject['status'];
+
+const STATUS_TABS: { id: Status; label: string; icon: React.ReactNode; active: string }[] = [
+  {
+    id: 'active',
+    label: 'Active',
+    icon: <span className="w-2 h-2 rounded-full bg-emerald-400" aria-hidden="true" />,
+    active: 'bg-emerald-500/15 text-emerald-200 border-emerald-500/40',
+  },
+  {
+    id: 'upcoming',
+    label: 'Upcoming',
+    icon: <Clock className="w-3.5 h-3.5" aria-hidden="true" />,
+    active: 'bg-amber-500/15 text-amber-200 border-amber-500/40',
+  },
+  {
+    id: 'ended',
+    label: 'Ended',
+    icon: <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />,
+    active: 'bg-purple-500/15 text-purple-200 border-purple-500/40',
+  },
+];
+
+const CHAINS = ['All', ...Array.from(new Set(icoProjects.map((p) => p.platform)))];
+
+/** Offsets are resolved at render so a sample "active" sale is never already over. */
+const dateFromOffset = (days: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+};
+
+const relativeDays = (days: number): string => {
+  if (days === 0) return 'today';
+  const n = Math.abs(days);
+  const unit = n === 1 ? 'day' : 'days';
+  return days > 0 ? `in ${n} ${unit}` : `${n} ${unit} ago`;
+};
+
+const hypeClass = (h: IcoProject['interestHype']) =>
+  h === 'Very High'
+    ? 'bg-rose-500/10 text-rose-200 border-rose-500/30'
+    : h === 'High'
+      ? 'bg-amber-500/10 text-amber-200 border-amber-500/30'
+      : 'bg-slate-800 text-slate-300 border-slate-700';
+
+const Spec: React.FC<{ label: string; children: React.ReactNode; className?: string }> = ({ label, children, className = '' }) => (
+  <div className={className}>
+    <dt className="text-xs text-slate-400">{label}</dt>
+    <dd className="text-slate-100 font-medium tabular-nums">{children}</dd>
+  </div>
+);
+
+const SampleNotice: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div
+    role="note"
+    className={`flex items-start gap-3 p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/25 text-sm text-amber-100/90 ${className}`}
+  >
+    <Info className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" aria-hidden="true" />
+    <p>
+      These are illustrative sample listings, not live or verified token sales. Never send funds based on this page.
+      Always verify a project through its own official channels.
+    </p>
+  </div>
+);
 
 export const IcoDropsRadar: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'active' | 'upcoming' | 'ended'>('active');
-  const [selectedChain, setSelectedChain] = useState<string>('All');
-  const [selectedProject, setSelectedProject] = useState<IcoProject | null>(null);
+  const [status, setStatus] = useState<Status>('active');
+  const [chain, setChain] = useState('All');
+  const [selected, setSelected] = useState<IcoProject | null>(null);
 
-  const chains = ['All', 'Ethereum', 'Solana', 'Base', 'Sui', 'Arbitrum'];
-
-  // Filter projects by status and chain
-  const filteredProjects = icoProjects.filter((p) => {
-    if (p.status !== activeTab) return false;
-    if (selectedChain !== 'All' && p.platform !== selectedChain) return false;
-    return true;
-  });
+  const projects = icoProjects.filter((p) => p.status === status && (chain === 'All' || p.platform === chain));
 
   return (
-    <div className="space-y-6 font-mono text-xs">
-      {/* Top Banner: ICO Drops Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 via-cyan-950/20 to-purple-950/20 border border-slate-800 backdrop-blur-md">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-              <Flame className="w-3 h-3 fill-current" />
-              ICO Drops Radar
-            </span>
-            <span className="text-slate-400 text-[10px] sm:text-[11px]">Curated Web3 Launchpad & Presale Database</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            Token Presales, IDOs & Launchpad Radar
-          </h2>
-          <p className="text-slate-400 text-[11px] sm:text-xs">
-            Track active token offerings, upcoming whitelist stages, and all-time ROI on public sales.
-          </p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Token sales &amp; launchpad radar</h1>
+          <p className="text-sm text-slate-400 mt-1">Sale stages, fundraising progress and post-launch returns.</p>
         </div>
 
-        {/* Tab switchers */}
-        <div className="flex w-full sm:w-auto p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs overflow-x-auto no-scrollbar">
-          <button
-            onClick={() => {
-              setActiveTab('active');
-              cypherSound.playBlip(600);
-            }}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg transition font-bold whitespace-nowrap text-[11px] sm:text-xs ${
-              activeTab === 'active'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Active ICOs
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('upcoming');
-              cypherSound.playBlip(600);
-            }}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg transition font-bold whitespace-nowrap text-[11px] sm:text-xs ${
-              activeTab === 'upcoming'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            Upcoming
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('ended');
-              cypherSound.playBlip(600);
-            }}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg transition font-bold whitespace-nowrap text-[11px] sm:text-xs ${
-              activeTab === 'ended'
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <TrendingUp className="w-3.5 h-3.5" />
-            Ended & ROI
-          </button>
-        </div>
-      </div>
-
-      {/* Platform / Chain Filter Chips */}
-      <div className="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar pb-1">
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <Filter className="w-3.5 h-3.5 text-slate-500" />
-          <span className="text-slate-500 text-[10px] sm:text-[11px]">Chain:</span>
-          {chains.map((chain) => (
+        <div role="group" aria-label="Sale status" className="flex w-full md:w-auto p-1 rounded-xl bg-slate-900 border border-slate-800 text-sm">
+          {STATUS_TABS.map((t) => (
             <button
-              key={chain}
+              key={t.id}
+              type="button"
+              aria-pressed={status === t.id}
               onClick={() => {
-                setSelectedChain(chain);
-                cypherSound.playBlip(550, 'sine', 0.03);
+                setStatus(t.id);
+                cypherSound.playBlip(600);
               }}
-              className={`px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] whitespace-nowrap transition font-bold ${
-                selectedChain === chain
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 h-10 rounded-lg transition whitespace-nowrap border ${
+                status === t.id ? `${t.active} font-semibold` : 'border-transparent text-slate-400 hover:text-white'
               }`}
             >
-              {chain}
+              {t.icon}
+              {t.label}
             </button>
           ))}
         </div>
-
-        <div className="text-[11px] text-slate-500 hidden sm:block shrink-0">
-          Showing <strong>{filteredProjects.length}</strong> {activeTab} offerings
-        </div>
       </div>
 
-      {/* ICO Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredProjects.map((project) => {
-          const progressPercent = Math.min(
-            100,
-            Math.round((project.raisedAmount / project.targetRaise) * 100)
-          );
+      <SampleNotice />
 
-          return (
-            <div
-              key={project.id}
-              onClick={() => setSelectedProject(project)}
-              className="p-5 rounded-2xl bg-slate-950/70 border border-slate-800 hover:border-cyan-500/40 transition duration-200 cursor-pointer space-y-4 flex flex-col justify-between group"
+      <div className="flex items-center justify-between gap-4">
+        <div
+          role="group"
+          aria-label="Filter by chain"
+          className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 text-sm"
+        >
+          {CHAINS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              aria-pressed={chain === c}
+              onClick={() => {
+                setChain(c);
+                cypherSound.playBlip(550, 'sine', 0.03);
+              }}
+              className={`px-3 py-2 rounded-full whitespace-nowrap transition border ${
+                chain === c
+                  ? 'bg-cyan-500/15 text-cyan-200 border-cyan-500/50 font-semibold'
+                  : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:text-white'
+              }`}
             >
-              <div className="space-y-3">
-                {/* Header row: Icon, Name, Symbol, Hype */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={project.icon}
-                      alt={project.name}
-                      className="w-10 h-10 rounded-xl bg-slate-900 p-1 border border-slate-800 group-hover:scale-105 transition"
-                    />
-                    <div>
-                      <div className="font-extrabold text-sm text-white group-hover:text-cyan-300 transition">
-                        {project.name}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">
-                          {project.symbol}
-                        </span>
-                        <span className="text-slate-600">·</span>
-                        <span className="text-[10px] text-cyan-400 font-semibold">
-                          {project.platform}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Interest Hype Badge */}
-                  <span
-                    className={`text-[9px] font-extrabold px-2 py-0.5 rounded border uppercase ${
-                      project.interestHype === 'Very High'
-                        ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                        : project.interestHype === 'High'
-                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                        : 'bg-slate-800 text-slate-300 border-slate-700'
-                    }`}
-                  >
-                    {project.interestHype} Hype
-                  </span>
-                </div>
-
-                {/* Description */}
-                <p className="text-slate-400 text-[11px] leading-relaxed line-clamp-2">
-                  {project.description}
-                </p>
-
-                {/* Sale Details Strip */}
-                <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-[11px]">
-                  <div>
-                    <span className="text-slate-500 text-[10px] block">Token Price:</span>
-                    <span className="text-amber-300 font-bold">${project.tokenPrice}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-slate-500 text-[10px] block">Fundraising Goal:</span>
-                    <span className="text-white font-bold">
-                      ${(project.targetRaise / 1e6).toFixed(2)}M
-                    </span>
-                  </div>
-                </div>
-
-                {/* Status-specific progress or ROI */}
-                {activeTab === 'active' && (
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-400">
-                        Raised: ${(project.raisedAmount / 1e6).toFixed(2)}M
-                      </span>
-                      <span className="text-cyan-400 font-bold">{progressPercent}%</span>
-                    </div>
-                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-cyan-400 to-indigo-500 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-                    <div className="text-[10px] text-slate-500 flex justify-between">
-                      <span>Start: {project.startDate}</span>
-                      <span>Ends: {project.endDate}</span>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'upcoming' && (
-                  <div className="p-2 rounded-lg bg-amber-950/20 border border-amber-800/30 text-[11px] space-y-1">
-                    <div className="flex justify-between text-amber-300">
-                      <span>Whitelist: {project.whitelist ? 'Required' : 'Open'}</span>
-                      <span>KYC: {project.kyc ? 'Yes' : 'No'}</span>
-                    </div>
-                    <div className="text-[10px] text-slate-400">Sale starts: {project.startDate}</div>
-                  </div>
-                )}
-
-                {activeTab === 'ended' && (
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div className="p-2 rounded-lg bg-emerald-950/20 border border-emerald-800/30 text-center">
-                      <span className="text-[10px] text-slate-400 block">USD ROI:</span>
-                      <span className="text-emerald-400 font-extrabold text-sm">
-                        {project.roiUsd || 'N/A'}
-                      </span>
-                    </div>
-                    <div className="p-2 rounded-lg bg-indigo-950/20 border border-indigo-800/30 text-center">
-                      <span className="text-[10px] text-slate-400 block">ETH ROI:</span>
-                      <span className="text-indigo-300 font-extrabold text-sm">
-                        {project.roiEth || 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Button */}
-              <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                <span className="text-[10px] text-slate-500">{project.category}</span>
-                <span className="text-cyan-400 font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition text-[11px]">
-                  View Details <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </div>
-          );
-        })}
+              {c}
+            </button>
+          ))}
+        </div>
+        <span className="text-sm text-slate-400 hidden sm:block shrink-0 tabular-nums" aria-live="polite">
+          {projects.length} {projects.length === 1 ? 'listing' : 'listings'}
+        </span>
       </div>
 
-      {/* Project Detail Modal */}
-      {selectedProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="relative w-full max-w-2xl rounded-2xl bg-[#090b11] border border-slate-800 shadow-2xl p-6 space-y-5 font-mono text-xs">
-            <div className="flex items-start justify-between border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <img
-                  src={selectedProject.icon}
-                  alt={selectedProject.name}
-                  className="w-12 h-12 rounded-xl bg-slate-900 p-1 border border-slate-800"
-                />
-                <div>
-                  <h3 className="text-lg font-extrabold text-white">{selectedProject.name}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300 uppercase">
-                      {selectedProject.symbol}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                      {selectedProject.platform}
-                    </span>
-                    <span className="text-[10px] text-slate-400">{selectedProject.stage}</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setSelectedProject(null)}
-                className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-slate-300 leading-relaxed text-xs">{selectedProject.description}</p>
-
-            {/* Sale Specification Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px]">
-              <div>
-                <span className="text-slate-500 block text-[10px]">Token Price:</span>
-                <span className="text-amber-400 font-bold">${selectedProject.tokenPrice}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 block text-[10px]">Hard Cap:</span>
-                <span className="text-white font-bold">
-                  ${(selectedProject.targetRaise / 1e6).toFixed(2)}M
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 block text-[10px]">Whitelist:</span>
-                <span className="text-slate-300">{selectedProject.whitelist ? 'Yes' : 'No'}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 block text-[10px]">KYC Required:</span>
-                <span className="text-slate-300">{selectedProject.kyc ? 'Yes' : 'No'}</span>
-              </div>
-            </div>
-
-            {/* Official Links */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              <a
-                href={selectedProject.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-cyan-400 hover:underline flex items-center gap-1.5"
-              >
-                <Globe className="w-3.5 h-3.5" /> Project Website
-              </a>
-              <a
-                href={selectedProject.whitepaper}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:underline flex items-center gap-1.5"
-              >
-                <FileText className="w-3.5 h-3.5" /> Whitepaper
-              </a>
-              <a
-                href={selectedProject.twitter}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:underline flex items-center gap-1.5"
-              >
-                <ExternalLink className="w-3.5 h-3.5" /> Official X (Twitter)
-              </a>
-            </div>
-          </div>
+      {projects.length === 0 ? (
+        <div className="p-10 rounded-2xl border border-dashed border-slate-700 text-center space-y-2">
+          <Inbox className="w-8 h-8 text-slate-600 mx-auto" aria-hidden="true" />
+          <p className="text-slate-100 font-semibold">
+            No {status} listings{chain !== 'All' ? ` on ${chain}` : ''}
+          </p>
+          {chain !== 'All' && (
+            <button type="button" onClick={() => setChain('All')} className="text-sm text-cyan-300 hover:text-cyan-200 min-h-11 px-3">
+              Show all chains
+            </button>
+          )}
         </div>
+      ) : (
+        <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {projects.map((p) => {
+            const progress = p.targetRaise > 0 ? Math.min(100, Math.round((p.raisedAmount / p.targetRaise) * 100)) : 0;
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => setSelected(p)}
+                  className="w-full h-full text-left p-5 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-cyan-500/50 transition flex flex-col justify-between gap-4 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
+                >
+                  <div className="space-y-3 w-full">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img src={p.icon} alt="" loading="lazy" className="w-10 h-10 rounded-xl bg-slate-900 p-1 border border-slate-800" />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-white group-hover:text-cyan-200 transition truncate">{p.name}</div>
+                          <div className="text-xs text-slate-400">
+                            {p.symbol} · <span className="text-cyan-300">{p.platform}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${hypeClass(p.interestHype)}`}>
+                        {p.interestHype}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-slate-300 leading-relaxed line-clamp-2">{p.description}</p>
+
+                    <dl className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-sm">
+                      <Spec label="Token price">${p.tokenPrice}</Spec>
+                      <Spec label="Target" className="text-right">${(p.targetRaise / 1e6).toFixed(2)}M</Spec>
+                    </dl>
+
+                    {p.status === 'active' && (
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs tabular-nums">
+                          <span className="text-slate-400">Raised ${(p.raisedAmount / 1e6).toFixed(2)}M</span>
+                          <span className="text-cyan-300 font-semibold">{progress}%</span>
+                        </div>
+                        <div
+                          className="w-full bg-slate-800 h-2 rounded-full overflow-hidden"
+                          role="progressbar"
+                          aria-label="Amount raised"
+                          aria-valuenow={progress}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                        >
+                          <div className="bg-gradient-to-r from-cyan-400 to-indigo-500 h-full rounded-full" style={{ width: `${progress}%` }} />
+                        </div>
+                        <p className="text-xs text-slate-400">Ends {relativeDays(p.endsInDays)}</p>
+                      </div>
+                    )}
+
+                    {p.status === 'upcoming' && (
+                      <div className="p-2.5 rounded-lg bg-amber-950/20 border border-amber-800/30 text-xs space-y-1">
+                        <div className="flex justify-between gap-2 text-amber-200">
+                          <span>Whitelist: {p.whitelist ? 'Required' : 'Open'}</span>
+                          <span>KYC: {p.kyc ? 'Yes' : 'No'}</span>
+                        </div>
+                        <p className="text-slate-400">Starts {relativeDays(p.startsInDays)}</p>
+                      </div>
+                    )}
+
+                    {p.status === 'ended' && (
+                      <dl className="grid grid-cols-2 gap-2 text-center">
+                        <div className="p-2 rounded-lg bg-emerald-950/20 border border-emerald-800/30">
+                          <dt className="text-xs text-slate-400">USD return</dt>
+                          <dd className="text-emerald-300 font-bold">{p.roiUsd || '—'}</dd>
+                        </div>
+                        <div className="p-2 rounded-lg bg-indigo-950/20 border border-indigo-800/30">
+                          <dt className="text-xs text-slate-400">ETH return</dt>
+                          <dd className="text-indigo-200 font-bold">{p.roiEth || '—'}</dd>
+                        </div>
+                      </dl>
+                    )}
+                  </div>
+
+                  <div className="w-full pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                    <span className="text-slate-400 truncate">{p.category}</span>
+                    <span className="text-cyan-300 font-semibold flex items-center gap-1 shrink-0">
+                      Details <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" aria-hidden="true" />
+                    </span>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {selected && (
+        <Modal
+          onClose={() => setSelected(null)}
+          closeLabel="Close listing details"
+          title={
+            <div className="flex items-center gap-3 min-w-0">
+              <img src={selected.icon} alt="" className="w-10 h-10 rounded-xl bg-slate-900 p-1 border border-slate-800" />
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-white truncate">{selected.name}</h2>
+                <p className="text-xs text-slate-400 truncate">
+                  {selected.symbol} · {selected.platform} · {selected.stage}
+                </p>
+              </div>
+            </div>
+          }
+        >
+          <div className="space-y-5 text-sm">
+            <p className="text-slate-300 leading-relaxed">{selected.description}</p>
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-950 border border-slate-800">
+              <Spec label="Token price">${selected.tokenPrice}</Spec>
+              <Spec label="Target raise">${(selected.targetRaise / 1e6).toFixed(2)}M</Spec>
+              <Spec label="Whitelist">{selected.whitelist ? 'Required' : 'Open'}</Spec>
+              <Spec label="KYC">{selected.kyc ? 'Required' : 'No'}</Spec>
+              <Spec label="Starts">{dateFromOffset(selected.startsInDays)}</Spec>
+              <Spec label="Ends">{dateFromOffset(selected.endsInDays)}</Spec>
+              <Spec label="Raised">${(selected.raisedAmount / 1e6).toFixed(2)}M</Spec>
+              <Spec label="Category">{selected.category}</Spec>
+            </dl>
+            {/* No outbound project links: several sample domains are unregistered, and linking
+                them would hand a phishing site a trusted referral the moment anyone buys one. */}
+            <SampleNotice />
+          </div>
+        </Modal>
       )}
     </div>
   );

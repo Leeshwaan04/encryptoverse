@@ -1,0 +1,32 @@
+version: 2
+
+updates:
+  # Workflow actions are pinned to SHAs, which go stale silently without this.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: 'ci'
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore'
+      prefix-development: 'chore'
+    groups:
+      # Routine bumps arrive as one reviewable PR instead of a dozen.
+      minor-and-patch:
+        update-types: [minor, patch]
+      # Majors stay separate: they need release notes read before merging.
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+        update-types: [major]

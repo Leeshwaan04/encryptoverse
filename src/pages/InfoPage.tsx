@@ -26,7 +26,7 @@ export const InfoPage: React.FC<InfoPageProps> = ({ page, onNavigate }) => {
 
   return (
     <article className="max-w-3xl mx-auto font-mono text-xs space-y-4 py-4">
-      <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500">
+      <nav aria-label="Breadcrumb" className="text-[11px] text-slate-400">
         <a
           href="/"
           onClick={(e) => {
@@ -41,7 +41,7 @@ export const InfoPage: React.FC<InfoPageProps> = ({ page, onNavigate }) => {
       </nav>
       <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{page.title}</h1>
       <div className="space-y-3 text-[13px]">{page.body}</div>
-      <p className="pt-6 text-[11px] text-slate-500">Last updated {SITE.lastUpdated}</p>
+      <p className="pt-6 text-[11px] text-slate-400">Last updated {SITE.lastUpdated}</p>
     </article>
   );
 };

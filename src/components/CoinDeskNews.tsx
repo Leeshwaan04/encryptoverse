@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Newspaper, ExternalLink, Clock } from 'lucide-react';
 import { cypherSound } from '../lib/crypto-utils';
+import { EDGE_PROXY_ENABLED } from '../services/cryptoApi';
 
 interface NewsItem {
   title: string;
@@ -22,10 +23,11 @@ function timeAgo(iso: string | null): string {
 export const CoinDeskNews: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [items, setItems] = useState<NewsItem[]>([]);
-  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>(EDGE_PROXY_ENABLED ? 'loading' : 'error');
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!EDGE_PROXY_ENABLED) return;
     let ignore = false;
     fetch('/api/news')
       .then((r) => {
@@ -34,7 +36,7 @@ export const CoinDeskNews: React.FC = () => {
       })
       .then((j) => {
         if (ignore) return;
-        setItems(j.data.items);
+        setItems(j.data.items.filter((n) => typeof n.url === 'string' && n.url.startsWith('https://')));
         setFetchedAt(j.fetchedAt);
         setState('ready');
       })
@@ -84,7 +86,7 @@ export const CoinDeskNews: React.FC = () => {
         </div>
       </div>
 
-      {state === 'loading' && <div className="py-10 text-center text-slate-500">Loading latest headlines…</div>}
+      {state === 'loading' && <div className="py-10 text-center text-slate-400">Loading latest headlines…</div>}
       {state === 'error' && (
         <div className="py-10 text-center text-slate-400">
           News feeds are temporarily unavailable. Please try again shortly, or read directly at{' '}
@@ -111,9 +113,9 @@ export const CoinDeskNews: React.FC = () => {
                     <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-bold truncate">
                       {article.category}
                     </span>
-                    <span className="text-slate-500 shrink-0">{article.source}</span>
+                    <span className="text-slate-400 shrink-0">{article.source}</span>
                   </div>
-                  <span className="text-slate-500 flex items-center gap-1 shrink-0">
+                  <span className="text-slate-400 flex items-center gap-1 shrink-0">
                     <Clock className="w-3 h-3" /> {timeAgo(article.publishedAt)}
                   </span>
                 </div>

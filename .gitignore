@@ -23,5 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
+# test artefacts
+tests/out
+
 # Wrangler local state
 .wrangler

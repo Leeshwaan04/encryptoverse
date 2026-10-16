@@ -1,122 +1,135 @@
 import React, { useState } from 'react';
-import {
-  ArrowDownUp,
-  Calculator
-} from 'lucide-react';
+import { ArrowDownUp, Calculator } from 'lucide-react';
 import { cryptoTokens, type CryptoToken } from '../data/cryptoData';
-import { cypherSound } from '../lib/crypto-utils';
+import { cypherSound, formatAmount, formatPrice, type Currency } from '../lib/crypto-utils';
 
 interface CryptoConverterProps {
-  tokens?: CryptoToken[];
+  tokens: CryptoToken[];
+  currency: Currency;
+  isLive: boolean;
 }
 
-export const CryptoConverter: React.FC<CryptoConverterProps> = ({ tokens = cryptoTokens }) => {
-  const sourceTokens = tokens.length > 0 ? tokens : cryptoTokens;
-  const [amountFrom, setAmountFrom] = useState<string>('1');
-  const [tokenFromId, setTokenFromId] = useState<string>('bitcoin');
-  const [tokenToId, setTokenToId] = useState<string>('ethereum');
+const SELECT =
+  'bg-slate-800 border border-slate-700 text-white font-medium px-3 h-11 rounded-lg cursor-pointer text-sm w-full sm:w-56 shrink-0 focus:outline-none focus:border-cyan-500';
 
-  const tokenFrom = sourceTokens.find((t) => t.id === tokenFromId) || sourceTokens[0];
-  const tokenTo = sourceTokens.find((t) => t.id === tokenToId) || sourceTokens[1] || sourceTokens[0];
+export const CryptoConverter: React.FC<CryptoConverterProps> = ({ tokens, currency, isLive }) => {
+  const source = tokens.length > 0 ? tokens : cryptoTokens;
+  const [amount, setAmount] = useState('1');
+  const [fromId, setFromId] = useState('bitcoin');
+  const [toId, setToId] = useState('ethereum');
 
-  const parsedAmount = Math.max(0, parseFloat(amountFrom) || 0);
-  const usdValue = parsedAmount * tokenFrom.price;
-  const convertedToAmount = tokenTo.price > 0 ? usdValue / tokenTo.price : 0;
+  const from = source.find((t) => t.id === fromId) ?? source[0];
+  const to = source.find((t) => t.id === toId) ?? source[1] ?? source[0];
 
-  const handleSwapTokens = () => {
-    const prevFrom = tokenFromId;
-    setTokenFromId(tokenToId);
-    setTokenToId(prevFrom);
+  const parsed = Math.max(0, Number(amount) || 0);
+  const fiatValue = parsed * from.price;
+  // Guard the division: a zero or missing price would otherwise produce Infinity.
+  const converted = to.price > 0 ? fiatValue / to.price : 0;
+  const rate = to.price > 0 ? from.price / to.price : 0;
+
+  const swap = () => {
+    setFromId(to.id);
+    setToId(from.id);
     cypherSound.playBlip(650, 'triangle');
   };
 
+  const options = source.map((t) => (
+    <option key={t.id} value={t.id}>
+      {t.name} ({t.symbol})
+    </option>
+  ));
+
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-6 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl font-mono text-xs space-y-5 sm:space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-2">
-          <Calculator className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
-            Real-Time Crypto Converter & Price Calculator
-          </h3>
-        </div>
-        <span className="text-[10px] text-cyan-400 font-bold shrink-0">Live Rates</span>
+    <div className="max-w-2xl mx-auto p-5 sm:p-6 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="flex items-center gap-2 text-lg font-bold text-white">
+          <Calculator className="w-5 h-5 text-cyan-400" aria-hidden="true" />
+          Converter
+        </h1>
+        {/* Must reflect the real feed state: claiming "live" on stale data is a lie. */}
+        <span
+          className={`text-xs font-semibold px-2 py-1 rounded-full border ${
+            isLive
+              ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10'
+              : 'text-amber-300 border-amber-500/30 bg-amber-500/10'
+          }`}
+        >
+          {isLive ? 'Live rates' : 'Sample rates'}
+        </span>
       </div>
 
-      <div className="space-y-4">
-        {/* From Token */}
-        <div className="p-3.5 sm:p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-          <div className="flex justify-between text-slate-400 text-[10px] sm:text-[11px]">
-            <span>You Send / Convert:</span>
-            <span>Current Price: ${tokenFrom.price.toLocaleString()}</span>
+      <div className="space-y-2">
+        <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+          <div className="flex justify-between gap-2 text-xs text-slate-400">
+            <label htmlFor="convert-amount">Amount</label>
+            <span className="tabular-nums">
+              1 {from.symbol} = {formatPrice(from.price, currency)}
+            </span>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <input
+              id="convert-amount"
               type="number"
+              inputMode="decimal"
               min="0"
               step="any"
-              value={amountFrom}
-              onChange={(e) => setAmountFrom(e.target.value)}
-              className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
-              placeholder="0.0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full bg-transparent text-2xl font-semibold text-white focus:outline-none tabular-nums"
+              placeholder="0"
             />
-            <select
-              value={tokenFromId}
-              onChange={(e) => setTokenFromId(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-white font-bold px-3 py-2 rounded-lg cursor-pointer text-xs w-full sm:w-auto shrink-0"
-            >
-              {sourceTokens.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.symbol})
-                </option>
-              ))}
+            <label htmlFor="convert-from" className="sr-only">
+              Convert from
+            </label>
+            <select id="convert-from" value={from.id} onChange={(e) => setFromId(e.target.value)} className={SELECT}>
+              {options}
             </select>
           </div>
         </div>
 
-        {/* Swap button */}
-        <div className="flex justify-center -my-2 relative z-10">
+        <div className="flex justify-center -my-1 relative z-10">
           <button
-            onClick={handleSwapTokens}
-            className="p-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg transition duration-200"
-            title="Swap tokens"
+            type="button"
+            onClick={swap}
+            aria-label="Swap the two currencies"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white transition"
           >
-            <ArrowDownUp className="w-4 h-4" />
+            <ArrowDownUp className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
-        {/* To Token */}
-        <div className="p-3.5 sm:p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-          <div className="flex justify-between text-slate-400 text-[10px] sm:text-[11px]">
-            <span>You Receive (Estimated):</span>
-            <span>Current Price: ${tokenTo.price.toLocaleString()}</span>
+        <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+          <div className="flex justify-between gap-2 text-xs text-slate-400">
+            <span>You get (estimate)</span>
+            <span className="tabular-nums">
+              1 {to.symbol} = {formatPrice(to.price, currency)}
+            </span>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
-            <div className="text-xl font-extrabold text-cyan-300">
-              {convertedToAmount < 0.0001
-                ? convertedToAmount.toFixed(8)
-                : convertedToAmount.toLocaleString(undefined, { maximumFractionDigits: 6 })}
-            </div>
-            <select
-              value={tokenToId}
-              onChange={(e) => setTokenToId(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-white font-bold px-3 py-2 rounded-lg cursor-pointer text-xs w-full sm:w-auto shrink-0"
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <output
+              htmlFor="convert-amount convert-from convert-to"
+              aria-live="polite"
+              className="text-2xl font-semibold text-cyan-200 tabular-nums break-all"
             >
-              {sourceTokens.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.symbol})
-                </option>
-              ))}
+              {formatAmount(converted, 8)}
+            </output>
+            <label htmlFor="convert-to" className="sr-only">
+              Convert to
+            </label>
+            <select id="convert-to" value={to.id} onChange={(e) => setToId(e.target.value)} className={SELECT}>
+              {options}
             </select>
           </div>
         </div>
+      </div>
 
-        {/* Summary Rate Strip */}
-        <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800 text-[11px] text-slate-400 flex flex-wrap justify-between items-center gap-2">
-          <div>
-            1 {tokenFrom.symbol} = {(tokenFrom.price / tokenTo.price).toFixed(6)} {tokenTo.symbol}
-          </div>
-          <div>Total Value: ≈ ${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</div>
-        </div>
+      <div className="p-3 rounded-lg bg-slate-950/50 border border-slate-800 text-sm text-slate-300 flex flex-wrap justify-between gap-2 tabular-nums">
+        <span>
+          1 {from.symbol} = {formatAmount(rate, 8)} {to.symbol}
+        </span>
+        <span>
+          Total ≈ {formatPrice(fiatValue, currency)}
+        </span>
       </div>
     </div>
   );

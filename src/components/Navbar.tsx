@@ -1,22 +1,12 @@
-import React, { useState } from 'react';
-import {
-  TrendingUp,
-  Search,
-  Star,
-  Rocket,
-  Newspaper,
-  Calculator,
-  Wallet,
-  Menu,
-  X,
-  Flame,
-  Layers
-} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Layers, Menu, Search, Volume2, VolumeX, Wallet, X } from 'lucide-react';
 import { cypherSound } from '../lib/crypto-utils';
+import { NAV_TABS, type TabId } from '../lib/navTabs';
+
 
 interface NavbarProps {
-  activeTab: string;
-  onSelectTab: (tab: string) => void;
+  activeTab: TabId;
+  onSelectTab: (tab: TabId) => void;
   watchlistCount: number;
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -24,6 +14,48 @@ interface NavbarProps {
   walletAddress: string;
   network?: string;
 }
+
+const SearchField: React.FC<{
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  inputRef?: React.Ref<HTMLInputElement>;
+  className?: string;
+}> = ({ id, value, onChange, inputRef, className = '' }) => (
+  <div className={`relative ${className}`}>
+    <label htmlFor={id} className="sr-only">
+      Search coins
+    </label>
+    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden="true" />
+    <input
+      id={id}
+      ref={inputRef}
+      type="search"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onChange('');
+      }}
+      placeholder="Search coins"
+      autoComplete="off"
+      className="w-full pl-9 pr-9 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/70 focus:ring-2 focus:ring-cyan-500/20 transition [&::-webkit-search-cancel-button]:hidden"
+    />
+    {value ? (
+      <button
+        type="button"
+        onClick={() => onChange('')}
+        aria-label="Clear search"
+        className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-slate-800"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    ) : (
+      <kbd className="hidden lg:flex absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 items-center justify-center text-[11px] text-slate-500 border border-slate-700 rounded pointer-events-none">
+        /
+      </kbd>
+    )}
+  </div>
+);
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
@@ -35,81 +67,84 @@ export const Navbar: React.FC<NavbarProps> = ({
   walletAddress,
   network,
 }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [soundOn, setSoundOn] = useState(cypherSound.enabled);
+  const searchRef = useRef<HTMLInputElement>(null);
 
-  const navItems = [
-    { id: 'markets', label: 'Cryptocurrencies', icon: <TrendingUp className="w-3.5 h-3.5" /> },
-    { id: 'icodrops', label: 'ICO Drops & Launchpad', short: 'ICO Drops', icon: <Rocket className="w-3.5 h-3.5 text-amber-400" />, badge: 'HOT' },
-    { id: 'trending', label: 'Gainers & Losers', short: 'Movers', icon: <Flame className="w-3.5 h-3.5 text-rose-400" /> },
-    { id: 'watchlist', label: 'Watchlist', icon: <Star className="w-3.5 h-3.5 text-yellow-400" />, count: watchlistCount },
-    { id: 'news', label: 'CoinDesk News', short: 'News', icon: <Newspaper className="w-3.5 h-3.5 text-cyan-400" /> },
-    { id: 'converter', label: 'Converter', icon: <Calculator className="w-3.5 h-3.5 text-indigo-400" /> },
-  ];
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable;
+      // "/" is the conventional jump-to-search shortcut; never steal it from a dialog.
+      if (e.key === '/' && !typing && !document.querySelector('[role=dialog]')) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
-  const formattedAddress = walletAddress
-    ? walletAddress.length > 10
-      ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-3)}`
+  const shortAddress = walletAddress
+    ? walletAddress.length > 12
+      ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`
       : walletAddress
     : null;
 
-  return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#07090e]/95 border-b border-slate-800/80">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
-        {/* Brand Logo */}
-        <div
-          onClick={() => {
-            onSelectTab('markets');
-            cypherSound.playBlip(520);
-          }}
-          className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0 select-none"
-        >
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 p-[1.5px] shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-400/40 transition">
-            <div className="w-full h-full bg-[#07090e] rounded-[10px] flex items-center justify-center">
-              <Layers className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition duration-300" />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              <span className="font-extrabold tracking-wider text-xs sm:text-base bg-gradient-to-r from-white via-slate-100 to-cyan-300 bg-clip-text text-transparent font-mono">
-                ENCRYPTOVERSE
-              </span>
-              <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                PRO
-              </span>
-            </div>
-            <div className="text-[9px] sm:text-[10px] font-mono text-slate-500 -mt-0.5 tracking-tight hidden md:block xl:hidden">
-              Market Intelligence & ICO Launchpad
-            </div>
-          </div>
-        </div>
+  const selectTab = (id: TabId) => {
+    onSelectTab(id);
+    setMenuOpen(false);
+    cypherSound.playBlip(640, 'sine', 0.04);
+  };
 
-        {/* Desktop Nav Items */}
-        <nav className="hidden xl:flex items-center gap-0.5 font-mono text-xs">
-          {navItems.map((item) => {
-            const isActive = activeTab === item.id;
+  const toggleSound = () => {
+    const next = !soundOn;
+    cypherSound.setEnabled(next);
+    setSoundOn(next);
+    if (next) cypherSound.playBlip(720, 'triangle', 0.05);
+  };
+
+  return (
+    <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#07090e]/90 border-b border-slate-800/80">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => selectTab('markets')}
+          aria-label="Encryptoverse home"
+          className="flex items-center gap-2.5 group shrink-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
+        >
+          <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 p-px shadow-lg shadow-cyan-500/20">
+            <span className="w-full h-full bg-[#07090e] rounded-[11px] flex items-center justify-center">
+              <Layers className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition" aria-hidden="true" />
+            </span>
+          </span>
+          <span className="hidden min-[380px]:block text-left">
+            <span className="block font-bold tracking-tight text-[15px] text-white">Encryptoverse</span>
+            <span className="hidden 2xl:block text-[11px] text-slate-400 -mt-0.5">Market intelligence &amp; ICO radar</span>
+          </span>
+        </button>
+
+        <nav aria-label="Primary" className="hidden lg:flex items-center gap-0.5 text-sm min-w-0">
+          {NAV_TABS.map(({ id, label, short, icon: Icon, tone }) => {
+            const active = activeTab === id;
             return (
               <button
-                key={item.id}
-                onClick={() => {
-                  onSelectTab(item.id);
-                  cypherSound.playBlip(640, 'sine', 0.04);
-                }}
-                className={`px-2 py-1.5 rounded-lg transition flex items-center gap-1.5 whitespace-nowrap ${
-                  isActive
-                    ? 'bg-cyan-500/15 text-cyan-300 font-bold border border-cyan-500/30 shadow-sm shadow-cyan-500/10'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                key={id}
+                type="button"
+                onClick={() => selectTab(id)}
+                aria-current={active ? 'page' : undefined}
+                className={`px-3 py-2 rounded-lg transition flex items-center gap-1.5 whitespace-nowrap ${
+                  active ? 'text-white bg-slate-800/80 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-900'
                 }`}
               >
-                {item.icon}
-                <span>{item.short ?? item.label}</span>
-                {item.badge && (
-                  <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    {item.badge}
-                  </span>
-                )}
-                {typeof item.count === 'number' && item.count > 0 && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300">
-                    {item.count}
+                <Icon className={`w-4 h-4 shrink-0 ${tone}`} aria-hidden="true" />
+                {/* Short label on screen (the 7xl container cannot fit full labels + search); full label for assistive tech. */}
+                <span className="sr-only">{label}</span>
+                <span aria-hidden="true">{short}</span>
+                {id === 'watchlist' && watchlistCount > 0 && (
+                  <span className="text-[11px] font-semibold min-w-[1.25rem] px-1.5 rounded-full bg-cyan-500/20 text-cyan-200 tabular-nums">
+                    {watchlistCount}
                   </span>
                 )}
               </button>
@@ -117,98 +152,110 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Search Bar & Connect Wallet & Hamburger */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          {/* Quick Search on Tablets & Desktops */}
-          <div className="relative hidden sm:block w-36 md:w-48 xl:w-40">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search coin..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 font-mono text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/60 transition"
-            />
-          </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <SearchField
+            id="search-desktop"
+            value={searchQuery}
+            onChange={onSearchChange}
+            inputRef={searchRef}
+            className="hidden sm:block w-40 md:w-48 lg:w-36 xl:w-56"
+          />
 
-          {/* Wallet / Portfolio Connect */}
           <button
+            type="button"
+            onClick={toggleSound}
+            aria-label={soundOn ? 'Mute interface sounds' : 'Enable interface sounds'}
+            aria-pressed={soundOn}
+            className="hidden sm:flex w-10 h-10 items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          >
+            {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+
+          <button
+            type="button"
             onClick={onConnectWallet}
-            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition shadow-md shrink-0 border ${
-              formattedAddress
-                ? 'bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border-cyan-500/40 shadow-cyan-500/10'
-                : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white border-transparent shadow-cyan-500/20'
+            className={`flex items-center gap-2 px-3 h-10 rounded-lg text-sm font-semibold transition border ${
+              shortAddress
+                ? 'bg-slate-900 hover:bg-slate-800 text-cyan-200 border-cyan-500/40'
+                : 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 border-transparent'
             }`}
           >
-            {formattedAddress ? (
+            {shortAddress ? (
               <>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                <span className="font-mono text-[11px] sm:text-xs">{formattedAddress}</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" aria-hidden="true" />
+                <span className="font-mono text-xs">{shortAddress}</span>
                 {network && (
-                  <span className="hidden xl:inline text-[9px] font-normal px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-200">
+                  <span className="hidden xl:inline text-[11px] font-normal px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-100">
                     {network.split(' ')[0]}
                   </span>
                 )}
               </>
             ) : (
               <>
-                <Wallet className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden xs:inline">Connect</span>
-                <span className="xs:hidden">Wallet</span>
+                <Wallet className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>Connect</span>
               </>
             )}
           </button>
 
-          {/* Mobile Menu Toggle */}
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle Navigation Menu"
-            className="xl:hidden p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition"
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-nav"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition"
           >
-            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {menuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="xl:hidden bg-[#07090e]/98 border-b border-slate-800 px-4 py-3 space-y-2 font-mono text-xs max-h-[85vh] overflow-y-auto">
-          <div className="relative w-full mb-3">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search coins or launchpads..."
-              className="w-full pl-8 pr-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                onSelectTab(item.id);
-                setMobileMenuOpen(false);
-                cypherSound.playBlip(640);
-              }}
-              className={`w-full text-left px-3 py-2.5 rounded-lg transition flex items-center justify-between ${
-                activeTab === item.id
-                  ? 'bg-cyan-500/15 text-cyan-300 font-bold border border-cyan-500/30'
-                  : 'text-slate-300 hover:bg-slate-900/60'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                {item.icon}
-                <span className="text-xs">{item.label}</span>
-              </div>
-              {item.badge && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+      {/* Search stays on screen at phone widths rather than hiding behind the hamburger. */}
+      <div className="sm:hidden px-4 pb-3">
+        <SearchField id="search-mobile" value={searchQuery} onChange={onSearchChange} />
+      </div>
+
+      {menuOpen && (
+        <nav
+          id="mobile-nav"
+          aria-label="Primary"
+          className="lg:hidden border-t border-slate-800 bg-[#07090e] px-4 py-3 grid grid-cols-2 gap-2 text-sm max-h-[70dvh] overflow-y-auto"
+        >
+          {NAV_TABS.map(({ id, label, icon: Icon, tone }) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => selectTab(id)}
+                aria-current={active ? 'page' : undefined}
+                className={`text-left px-3 py-3 rounded-xl transition flex items-center gap-2.5 border ${
+                  active
+                    ? 'bg-cyan-500/10 text-cyan-200 font-semibold border-cyan-500/40'
+                    : 'text-slate-300 border-slate-800 hover:bg-slate-900'
+                }`}
+              >
+                <Icon className={`w-4 h-4 shrink-0 ${tone}`} aria-hidden="true" />
+                <span className="truncate">{label}</span>
+                {id === 'watchlist' && watchlistCount > 0 && (
+                  <span className="ml-auto text-[11px] px-1.5 rounded-full bg-cyan-500/20 text-cyan-200 tabular-nums">
+                    {watchlistCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={toggleSound}
+            aria-pressed={soundOn}
+            className="col-span-2 text-left px-3 py-3 rounded-xl border border-slate-800 text-slate-300 flex items-center gap-2.5"
+          >
+            {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            Interface sounds: {soundOn ? 'On' : 'Off'}
+          </button>
+        </nav>
       )}
     </header>
   );

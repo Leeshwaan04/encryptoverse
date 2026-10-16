@@ -1,115 +1,102 @@
 import React, { useState } from 'react';
-import {
-  Star,
-  TrendingUp,
-  TrendingDown,
-  ArrowUpDown
-} from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronsUpDown, SearchX, Star } from 'lucide-react';
 import type { CryptoToken } from '../data/cryptoData';
-import { cypherSound } from '../lib/crypto-utils';
+import {
+  changeColor,
+  cypherSound,
+  formatCompact,
+  formatPercentage,
+  formatPrice,
+  type Currency,
+} from '../lib/crypto-utils';
+import { Sparkline } from './Sparkline';
 
 interface CryptoTableProps {
   tokens: CryptoToken[];
+  currency: Currency;
+  isLoading?: boolean;
+  searchQuery?: string;
+  onClearSearch?: () => void;
   watchlist: string[];
   onToggleWatchlist: (tokenId: string) => void;
   onSelectToken: (token: CryptoToken) => void;
 }
 
+const CATEGORIES = ['All', 'Layer 1', 'Layer 2', 'AI & Big Data', 'DeFi', 'Meme', 'DePIN', 'RWA'];
+
+type SortField = 'rank' | 'name' | 'price' | 'change1h' | 'change24h' | 'change7d' | 'marketCap' | 'volume24h';
+
+const COLUMNS: { field: SortField; label: string; right?: boolean; cls?: string }[] = [
+  { field: 'rank', label: '#', cls: 'w-12 hidden sm:table-cell' },
+  { field: 'name', label: 'Coin' },
+  { field: 'price', label: 'Price', right: true },
+  { field: 'change1h', label: '1h', right: true, cls: 'hidden md:table-cell' },
+  { field: 'change24h', label: '24h', right: true },
+  { field: 'change7d', label: '7d', right: true, cls: 'hidden md:table-cell' },
+  { field: 'volume24h', label: '24h volume', right: true, cls: 'hidden xl:table-cell' },
+  { field: 'marketCap', label: 'Market cap', right: true, cls: 'hidden sm:table-cell' },
+];
+
+const ChangeCell: React.FC<{ value: number; className?: string }> = ({ value, className = '' }) => (
+  <td className={`py-3 px-3 text-right font-medium whitespace-nowrap ${changeColor(value)} ${className}`}>
+    {formatPercentage(value)}
+  </td>
+);
+
 export const CryptoTable: React.FC<CryptoTableProps> = ({
   tokens,
+  currency,
+  isLoading = false,
+  searchQuery = '',
+  onClearSearch,
   watchlist,
   onToggleWatchlist,
   onSelectToken,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [sortField, setSortField] = useState<keyof CryptoToken>('rank');
-  const [sortAsc, setSortAsc] = useState<boolean>(true);
+  const [category, setCategory] = useState('All');
+  const [sortField, setSortField] = useState<SortField>('rank');
+  const [sortAsc, setSortAsc] = useState(true);
 
-  const categories = [
-    'All',
-    'Layer 1',
-    'Layer 2',
-    'AI & Big Data',
-    'DeFi',
-    'Meme',
-    'DePIN',
-    'RWA',
-  ];
-
-  const handleSort = (field: keyof CryptoToken) => {
+  const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortAsc(!sortAsc);
+      setSortAsc((a) => !a);
     } else {
       setSortField(field);
+      // Rank and name read naturally ascending; numbers are more useful highest-first.
       setSortAsc(field === 'rank' || field === 'name');
     }
     cypherSound.playBlip(550, 'sine', 0.03);
   };
 
-  // Filter tokens by category
-  const filteredTokens = tokens.filter((t) => {
-    if (selectedCategory === 'All') return true;
-    return t.category === selectedCategory;
-  });
-
-  // Sort tokens
-  const sortedTokens = [...filteredTokens].sort((a, b) => {
-    const valA = a[sortField];
-    const valB = b[sortField];
-    if (typeof valA === 'number' && typeof valB === 'number') {
-      return sortAsc ? valA - valB : valB - valA;
-    }
-    if (typeof valA === 'string' && typeof valB === 'string') {
-      return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    }
+  const filtered = category === 'All' ? tokens : tokens.filter((t) => t.category === category);
+  const sorted = [...filtered].sort((a, b) => {
+    const x = a[sortField];
+    const y = b[sortField];
+    if (typeof x === 'number' && typeof y === 'number') return sortAsc ? x - y : y - x;
+    if (typeof x === 'string' && typeof y === 'string') return sortAsc ? x.localeCompare(y) : y.localeCompare(x);
     return 0;
   });
 
-  // Mini sparkline SVG renderer
-  const renderSparkline = (points: number[], positive: boolean) => {
-    const min = Math.min(...points);
-    const max = Math.max(...points);
-    const range = max - min || 1;
-    const width = 110;
-    const height = 32;
-
-    const coords = points.map((p, i) => {
-      const x = (i / (points.length - 1)) * width;
-      const y = height - ((p - min) / range) * (height - 8) - 4;
-      return `${x},${y}`;
-    });
-
-    const color = positive ? '#10b981' : '#f43f5e';
-
-    return (
-      <svg width={width} height={height} className="overflow-visible inline-block">
-        <polyline
-          fill="none"
-          stroke={color}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          points={coords.join(' ')}
-        />
-      </svg>
-    );
-  };
-
   return (
-    <div className="space-y-3.5">
-      {/* Category Filter Chips Bar */}
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 font-mono text-xs">
-        {categories.map((cat) => (
+    <div className="space-y-3">
+      <div
+        role="group"
+        aria-label="Filter by category"
+        className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 text-sm"
+      >
+        {CATEGORIES.map((cat) => (
           <button
             key={cat}
+            type="button"
+            aria-pressed={category === cat}
             onClick={() => {
-              setSelectedCategory(cat);
+              setCategory(cat);
               cypherSound.playBlip(600, 'sine', 0.03);
             }}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-lg whitespace-nowrap transition font-bold text-[11px] sm:text-xs ${
-              selectedCategory === cat
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm shadow-cyan-500/10'
-                : 'bg-slate-900/60 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800'
+            className={`px-3 py-2 rounded-full whitespace-nowrap transition border ${
+              category === cat
+                ? 'bg-cyan-500/15 text-cyan-200 border-cyan-500/50 font-semibold'
+                : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800'
             }`}
           >
             {cat}
@@ -117,255 +104,165 @@ export const CryptoTable: React.FC<CryptoTableProps> = ({
         ))}
       </div>
 
-      {/* Main Table Container */}
-      <div className="rounded-xl border border-slate-800 bg-slate-950/70 backdrop-blur-md overflow-hidden shadow-lg">
-        <div className="overflow-x-auto no-scrollbar">
-          <table className="w-full text-left font-mono text-xs">
-            {/* Table Header */}
-            <thead className="bg-[#05070b] border-b border-slate-800/80 text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider select-none">
+      <div className="rounded-xl border border-slate-800 bg-slate-950/70 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm tabular-nums">
+            <caption className="sr-only">
+              Cryptocurrency prices in {currency}, sorted by {sortField}, {sortAsc ? 'ascending' : 'descending'}.
+            </caption>
+            <thead className="bg-[#0a0d14] border-b border-slate-800 text-xs text-slate-400">
               <tr>
-                <th className="py-2.5 sm:py-3 px-2 sm:px-3 w-8 sm:w-10 text-center"></th>
-                <th
-                  onClick={() => handleSort('rank')}
-                  className="py-2.5 sm:py-3 px-1.5 sm:px-3 cursor-pointer hover:text-cyan-400"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>#</span>
-                    <ArrowUpDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                  </div>
+                <th scope="col" className="w-12 py-2.5 pl-2">
+                  <span className="sr-only">Watchlist</span>
                 </th>
-                <th
-                  onClick={() => handleSort('name')}
-                  className="py-2.5 sm:py-3 px-2 sm:px-4 cursor-pointer hover:text-cyan-400"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>Name</span>
-                    <ArrowUpDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('price')}
-                  className="py-2.5 sm:py-3 px-2 sm:px-4 text-right cursor-pointer hover:text-cyan-400"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>Price</span>
-                    <ArrowUpDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('change24h')}
-                  className="py-2.5 sm:py-3 px-2 sm:px-3 text-right cursor-pointer hover:text-cyan-400"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>24h %</span>
-                    <ArrowUpDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('change1h')}
-                  className="py-2.5 sm:py-3 px-2 sm:px-3 text-right cursor-pointer hover:text-cyan-400 hidden sm:table-cell"
-                >
-                  <span>1h %</span>
-                </th>
-                <th
-                  onClick={() => handleSort('change7d')}
-                  className="py-2.5 sm:py-3 px-2 sm:px-3 text-right cursor-pointer hover:text-cyan-400 hidden md:table-cell"
-                >
-                  <span>7d %</span>
-                </th>
-                <th
-                  onClick={() => handleSort('marketCap')}
-                  className="py-2.5 sm:py-3 px-2 sm:px-4 text-right cursor-pointer hover:text-cyan-400 hidden sm:table-cell"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>Market Cap</span>
-                    <ArrowUpDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('volume24h')}
-                  className="py-2.5 sm:py-3 px-2 sm:px-4 text-right cursor-pointer hover:text-cyan-400 hidden lg:table-cell"
-                >
-                  <span>24h Vol</span>
-                </th>
-                <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center hidden xl:table-cell">
-                  Circulating Supply
-                </th>
-                <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center hidden md:table-cell">
-                  Last 7 Days
+                {COLUMNS.map(({ field, label, right, cls }) => {
+                  const active = sortField === field;
+                  const Icon = active ? (sortAsc ? ChevronUp : ChevronDown) : ChevronsUpDown;
+                  return (
+                    <th
+                      key={field}
+                      scope="col"
+                      aria-sort={active ? (sortAsc ? 'ascending' : 'descending') : 'none'}
+                      className={`py-2.5 px-3 font-medium ${right ? 'text-right' : ''} ${cls ?? ''}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleSort(field)}
+                        aria-label={`Sort by ${label}`}
+                        className={`inline-flex items-center gap-1 rounded hover:text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400 ${
+                          right ? 'flex-row-reverse' : ''
+                        } ${active ? 'text-cyan-300' : ''}`}
+                      >
+                        <span>{label}</span>
+                        <Icon className={`w-3.5 h-3.5 ${active ? '' : 'opacity-40'}`} aria-hidden="true" />
+                      </button>
+                    </th>
+                  );
+                })}
+                <th scope="col" className="py-2.5 px-3 font-medium text-right hidden lg:table-cell">
+                  Last 7 days
                 </th>
               </tr>
             </thead>
 
-            {/* Table Body */}
             <tbody className="divide-y divide-slate-800/60">
-              {sortedTokens.map((token) => {
-                const isFav = watchlist.includes(token.id);
-                const isPos1h = token.change1h >= 0;
-                const isPos24h = token.change24h >= 0;
-                const isPos7d = token.change7d >= 0;
+              {isLoading && tokens.length === 0
+                ? Array.from({ length: 8 }, (_, i) => (
+                    <tr key={i}>
+                      <td colSpan={10} className="py-3 px-3">
+                        <div className="h-6 rounded bg-slate-800/60 animate-pulse" />
+                        <span className="sr-only">Loading prices</span>
+                      </td>
+                    </tr>
+                  ))
+                : sorted.map((token) => {
+                    const starred = watchlist.includes(token.id);
+                    return (
+                      <tr
+                        key={token.id}
+                        onClick={() => onSelectToken(token)}
+                        className="hover:bg-slate-900/70 cursor-pointer transition-colors group"
+                      >
+                        <td className="py-1 pl-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleWatchlist(token.id);
+                              cypherSound.playBlip(720, 'sine', 0.05);
+                            }}
+                            aria-label={starred ? `Remove ${token.name} from watchlist` : `Add ${token.name} to watchlist`}
+                            aria-pressed={starred}
+                            className="w-11 h-11 flex items-center justify-center rounded-lg text-slate-500 hover:text-yellow-400 hover:bg-slate-800/60 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
+                          >
+                            <Star className={`w-4 h-4 ${starred ? 'text-yellow-400 fill-yellow-400' : ''}`} />
+                          </button>
+                        </td>
 
-                return (
-                  <tr
-                    key={token.id}
-                    className="hover:bg-slate-900/60 cursor-pointer transition duration-150 group"
-                  >
-                    {/* Star Favorite Toggle */}
-                    <td
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleWatchlist(token.id);
-                        cypherSound.playBlip(720, 'sine', 0.05);
-                      }}
-                      className="py-2.5 sm:py-3.5 px-2 sm:px-3 text-center"
-                    >
-                      <button className="text-slate-600 hover:text-yellow-400 transition p-1">
-                        <Star
-                          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
-                            isFav ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'
-                          }`}
-                        />
-                      </button>
-                    </td>
+                        <td className="py-3 px-3 text-slate-400 hidden sm:table-cell">{token.rank}</td>
 
-                    {/* Rank */}
-                    <td
-                      onClick={() => onSelectToken(token)}
-                      className="py-2.5 sm:py-3.5 px-1.5 sm:px-3 text-slate-500 font-bold text-[11px] sm:text-xs"
-                    >
-                      {token.rank}
-                    </td>
-
-                    {/* Name & Symbol */}
-                    <td onClick={() => onSelectToken(token)} className="py-2.5 sm:py-3.5 px-2 sm:px-4">
-                      <div className="flex items-center gap-2 sm:gap-2.5">
-                        <img
-                          src={token.icon}
-                          alt={token.name}
-                          className="w-5 h-5 sm:w-6 sm:h-6 rounded-full group-hover:scale-110 transition duration-200 shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <div className="font-bold text-white group-hover:text-cyan-300 transition truncate text-[11px] sm:text-xs max-w-[100px] sm:max-w-none">
-                            {token.name}
-                          </div>
-                          <div className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-semibold">
-                            {token.symbol}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Price */}
-                    <td
-                      onClick={() => onSelectToken(token)}
-                      className="py-2.5 sm:py-3.5 px-2 sm:px-4 text-right font-bold text-white text-xs sm:text-[13px] whitespace-nowrap"
-                    >
-                      {token.price < 0.01
-                        ? `$${token.price.toFixed(8)}`
-                        : `$${token.price.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}`}
-                    </td>
-
-                    {/* 24h Change */}
-                    <td
-                      onClick={() => onSelectToken(token)}
-                      className={`py-2.5 sm:py-3.5 px-2 sm:px-3 text-right font-bold text-[11px] sm:text-xs whitespace-nowrap ${
-                        isPos24h ? 'text-emerald-400' : 'text-rose-400'
-                      }`}
-                    >
-                      <div className="flex items-center justify-end gap-0.5 sm:gap-1">
-                        {isPos24h ? (
-                          <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                        ) : (
-                          <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                        )}
-                        <span>
-                          {isPos24h ? '+' : ''}
-                          {token.change24h}%
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* 1h Change */}
-                    <td
-                      onClick={() => onSelectToken(token)}
-                      className={`py-2.5 sm:py-3.5 px-2 sm:px-3 text-right font-semibold hidden sm:table-cell text-[11px] sm:text-xs ${
-                        isPos1h ? 'text-emerald-400' : 'text-rose-400'
-                      }`}
-                    >
-                      {isPos1h ? '+' : ''}
-                      {token.change1h}%
-                    </td>
-
-                    {/* 7d Change */}
-                    <td
-                      onClick={() => onSelectToken(token)}
-                      className={`py-2.5 sm:py-3.5 px-2 sm:px-3 text-right font-semibold hidden md:table-cell text-[11px] sm:text-xs ${
-                        isPos7d ? 'text-emerald-400' : 'text-rose-400'
-                      }`}
-                    >
-                      {isPos7d ? '+' : ''}
-                      {token.change7d}%
-                    </td>
-
-                    {/* Market Cap */}
-                    <td
-                      onClick={() => onSelectToken(token)}
-                      className="py-2.5 sm:py-3.5 px-2 sm:px-4 text-right font-bold text-slate-200 hidden sm:table-cell text-[11px] sm:text-xs whitespace-nowrap"
-                    >
-                      ${(token.marketCap / 1e9).toFixed(2)}B
-                    </td>
-
-                    {/* 24h Volume */}
-                    <td
-                      onClick={() => onSelectToken(token)}
-                      className="py-2.5 sm:py-3.5 px-2 sm:px-4 text-right text-slate-300 hidden lg:table-cell text-[11px] sm:text-xs whitespace-nowrap"
-                    >
-                      ${(token.volume24h / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 })}M
-                    </td>
-
-                    {/* Circulating Supply */}
-                    <td
-                      onClick={() => onSelectToken(token)}
-                      className="py-2.5 sm:py-3.5 px-3 sm:px-4 text-center hidden xl:table-cell"
-                    >
-                      <div className="space-y-1">
-                        <div className="text-slate-300 text-[11px]">
-                          {token.circulatingSupply.toLocaleString()} {token.symbol}
-                        </div>
-                        {token.maxSupply && (
-                          <div className="w-24 xl:w-28 mx-auto bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-cyan-400 h-full rounded-full"
-                              style={{
-                                width: `${Math.min(
-                                  100,
-                                  (token.circulatingSupply / token.maxSupply) * 100
-                                )}%`,
-                              }}
+                        <td className="py-3 px-3">
+                          {/* A real button so the row is reachable and operable by keyboard. */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectToken(token);
+                            }}
+                            className="flex items-center gap-2.5 text-left rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
+                          >
+                            <img
+                              src={token.icon}
+                              alt=""
+                              loading="lazy"
+                              width={24}
+                              height={24}
+                              className="w-6 h-6 rounded-full shrink-0 bg-slate-800"
                             />
-                          </div>
-                        )}
-                      </div>
-                    </td>
+                            <span className="min-w-0">
+                              <span className="block font-semibold text-white group-hover:text-cyan-200 transition truncate max-w-[8rem] sm:max-w-[14rem]">
+                                {token.name}
+                              </span>
+                              <span className="block text-xs text-slate-400">{token.symbol}</span>
+                            </span>
+                          </button>
+                        </td>
 
-                    {/* Sparkline Chart */}
-                    <td
-                      onClick={() => onSelectToken(token)}
-                      className="py-2.5 sm:py-3.5 px-2 sm:px-4 text-center hidden md:table-cell"
-                    >
-                      <div className="flex items-center justify-center">
-                        {renderSparkline(token.sparkline, isPos7d)}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                        <td className="py-3 px-3 text-right font-semibold text-white whitespace-nowrap">
+                          {formatPrice(token.price, currency)}
+                        </td>
+                        <ChangeCell value={token.change1h} className="hidden md:table-cell" />
+                        <ChangeCell value={token.change24h} />
+                        <ChangeCell value={token.change7d} className="hidden md:table-cell" />
+                        <td className="py-3 px-3 text-right text-slate-300 whitespace-nowrap hidden xl:table-cell">
+                          {formatCompact(token.volume24h, currency)}
+                        </td>
+                        <td className="py-3 px-3 text-right text-slate-200 whitespace-nowrap hidden sm:table-cell">
+                          {formatCompact(token.marketCap, currency)}
+                        </td>
+                        <td className="py-2 px-3 text-right hidden lg:table-cell">
+                          <Sparkline
+                            points={token.sparkline}
+                            positive={token.change7d >= 0}
+                            label={`${token.name} 7 day trend, ${formatPercentage(token.change7d)}`}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
             </tbody>
           </table>
         </div>
+
+        {!isLoading && sorted.length === 0 && (
+          <div className="py-14 px-4 text-center space-y-3" role="status">
+            <SearchX className="w-8 h-8 text-slate-600 mx-auto" aria-hidden="true" />
+            <p className="text-slate-100 font-semibold">
+              {searchQuery ? `No coins match "${searchQuery}"` : `No coins in ${category}`}
+            </p>
+            <p className="text-sm text-slate-400">This table covers the top 50 coins by market cap.</p>
+            <div className="flex justify-center gap-2 pt-1">
+              {searchQuery && onClearSearch && (
+                <button
+                  type="button"
+                  onClick={onClearSearch}
+                  className="px-4 py-2 rounded-lg text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium"
+                >
+                  Clear search
+                </button>
+              )}
+              {category !== 'All' && (
+                <button
+                  type="button"
+                  onClick={() => setCategory('All')}
+                  className="px-4 py-2 rounded-lg text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium"
+                >
+                  Show all categories
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
