@@ -41,6 +41,25 @@ jobs:
       - name: Typecheck and build
         run: npm run build
 
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+
+      # Serve the real production bundle, so the suites test what will ship.
+      - name: Start preview server
+        run: |
+          npm run preview &
+          npx wait-on -t 60000 http://localhost:4173/
+
+      # 55 end-to-end checks: currency handling, accessibility, resilience,
+      # corrupt-storage robustness and the data-honesty regressions.
+      - name: QA suite
+        run: npm run test:qa
+
+      # Client-side security: injection via URL params and hostile API payloads,
+      # prototype pollution, clickjacking, data egress, wallet method safety.
+      - name: Security suite
+        run: npm run test:security
+
       # The deploy job ships this exact artifact, so what was verified is what goes live.
       - name: Upload build output
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
