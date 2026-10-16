@@ -1,6 +1,7 @@
 import { cached, coingeckoFetch, upstreamJson, json, type Ctx } from '../_lib';
 
-const RANGES: Record<string, string> = { '1': '1', '7': '7', '30': '30', '365': '365', max: 'max' };
+// CoinGecko's public API only serves the past 365 days ("max" requires a paid plan)
+const RANGES: Record<string, string> = { '1': '1', '7': '7', '30': '30', '365': '365' };
 
 // GET /api/chart?id=bitcoin&days=7&currency=usd -> price history (CoinGecko /market_chart), downsampled to <=120 points
 export const onRequestGet = async (ctx: Ctx) => {

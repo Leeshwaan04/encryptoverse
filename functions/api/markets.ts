@@ -1,6 +1,6 @@
 import { cached, coingeckoFetch, upstreamJson, json, type Ctx } from '../_lib';
 
-const CURRENCIES = new Set(['usd', 'eur', 'gbp', 'inr', 'jpy', 'aud', 'cad', 'chf', 'cny', 'krw', 'brl', 'aed', 'sgd']);
+const CURRENCIES = new Set(['usd', 'eur', 'gbp', 'inr', 'jpy', 'aud', 'cad', 'chf', 'cny', 'krw', 'brl', 'aed', 'sgd', 'btc', 'eth']);
 
 // GET /api/markets?currency=usd  -> top 50 coins by market cap (CoinGecko /coins/markets), cached 60s
 export const onRequestGet = async (ctx: Ctx) => {

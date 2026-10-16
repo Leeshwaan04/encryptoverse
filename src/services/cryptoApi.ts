@@ -188,8 +188,19 @@ export async function fetchLiveCryptoTokens(currency = 'USD'): Promise<LiveMarke
       lastUpdated: fetchedAt,
     };
   } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : 'CoinGecko API unreachable';
-    // Graceful offline fallback to rich local token list
+    const errorMsg = err instanceof Error ? err.message : 'Market data unreachable';
+    // Prefer the last real data this browser received (any age) over the built-in snapshot
+    if (typeof window !== 'undefined') {
+      try {
+        const old = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (old && Array.isArray(old.tokens) && old.tokens.length > 0) {
+          return { tokens: old.tokens, isLive: true, isCached: true, lastUpdated: new Date(old.timestamp), error: errorMsg };
+        }
+      } catch {
+        // fall through to snapshot
+      }
+    }
+    // Last resort: illustrative built-in snapshot (the UI flags this as not live)
     return {
       tokens: cryptoTokens,
       isLive: false,

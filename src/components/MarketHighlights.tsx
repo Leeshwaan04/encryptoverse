@@ -2,21 +2,18 @@ import React from 'react';
 import {
   Flame,
   TrendingUp,
-  Rocket,
   Activity
 } from 'lucide-react';
-import { cryptoTokens, icoProjects, globalMarketStats, type CryptoToken, type GlobalStats } from '../data/cryptoData';
+import { cryptoTokens, globalMarketStats, type CryptoToken, type GlobalStats } from '../data/cryptoData';
 
 interface MarketHighlightsProps {
   onSelectToken: (tokenId: string) => void;
-  onSelectIco: (icoId: string) => void;
   tokens?: CryptoToken[];
   stats?: GlobalStats;
 }
 
 export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
   onSelectToken,
-  onSelectIco,
   tokens = cryptoTokens,
   stats = globalMarketStats,
 }) => {
@@ -25,29 +22,26 @@ export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
   const fngColor = !fng ? 'text-slate-500' : fng.now.value < 25 ? 'text-rose-400' : fng.now.value < 45 ? 'text-orange-400' : fng.now.value < 55 ? 'text-amber-300' : 'text-emerald-400';
   const sourceTokens = tokens.length > 0 ? tokens : cryptoTokens;
 
-  // Top 3 trending
-  const trending = [sourceTokens[0], sourceTokens[2] || sourceTokens[0], sourceTokens[4] || sourceTokens[1]];
+  // Top 3 by 24h trading volume (real data, not a popularity guess)
+  const mostTraded = [...sourceTokens].sort((a, b) => b.volume24h - a.volume24h).slice(0, 3);
 
   // Top gainers (sorted by change24h desc)
   const topGainers = [...sourceTokens].sort((a, b) => b.change24h - a.change24h).slice(0, 3);
 
-  // Spotlight active ICO
-  const spotlightIco = icoProjects[0];
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {/* 1. Trending Coins */}
       <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 backdrop-blur-md space-y-3 font-mono">
         <div className="flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-1.5 text-white font-bold">
             <Flame className="w-4 h-4 text-rose-500 fill-current" />
-            <span>Trending Coins</span>
+            <span>Most Traded (24h Volume)</span>
           </div>
           <span className="text-[10px] text-cyan-400">View all</span>
         </div>
 
         <div className="space-y-2">
-          {trending.map((token, idx) => (
+          {mostTraded.map((token, idx) => (
             <div
               key={token.id}
               onClick={() => onSelectToken(token.id)}
@@ -100,51 +94,6 @@ export const MarketHighlights: React.FC<MarketHighlightsProps> = ({
               </span>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* 3. Spotlight ICO Drop */}
-      <div
-        onClick={() => onSelectIco(spotlightIco.id)}
-        className="p-4 rounded-xl bg-gradient-to-br from-slate-900/80 to-cyan-950/30 border border-cyan-800/40 backdrop-blur-md space-y-3 font-mono cursor-pointer hover:border-cyan-500/60 transition group"
-      >
-        <div className="flex items-center justify-between text-xs gap-2">
-          <div className="flex items-center gap-1.5 text-cyan-300 font-bold truncate">
-            <Rocket className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="truncate">Spotlight Presale</span>
-          </div>
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1 shrink-0 whitespace-nowrap">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-            STAGE 2 LIVE
-          </span>
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition">
-              {spotlightIco.name}
-            </span>
-            <span className="text-xs text-amber-400 font-bold">${spotlightIco.tokenPrice}</span>
-          </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
-            {spotlightIco.stage} · {spotlightIco.category}
-          </div>
-        </div>
-
-        {/* Mini progress bar */}
-        <div className="space-y-1">
-          <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-cyan-400 to-indigo-500 h-full rounded-full"
-              style={{ width: `${(spotlightIco.raisedAmount / spotlightIco.targetRaise) * 100}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-[10px] text-slate-400">
-            <span>Raised: ${(spotlightIco.raisedAmount / 1e6).toFixed(2)}M</span>
-            <span className="text-cyan-400 font-bold">
-              {((spotlightIco.raisedAmount / spotlightIco.targetRaise) * 100).toFixed(0)}%
-            </span>
-          </div>
         </div>
       </div>
 

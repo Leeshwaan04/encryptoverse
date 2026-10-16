@@ -23,20 +23,13 @@ export const TrendingMoversView: React.FC<TrendingMoversViewProps> = ({
   // Losers
   const losers = [...source].sort((a, b) => a.change24h - b.change24h).slice(0, 6);
 
-  // Most visited / Trending
-  const trending = [
-    source[0],
-    source[2] || source[0],
-    source[5] || source[1],
-    source[4] || source[2],
-    source[6] || source[3],
-    source[1] || source[0],
-  ].filter(Boolean);
+  // Most traded by 24h volume (real data)
+  const trending = [...source].sort((a, b) => b.volume24h - a.volume24h).slice(0, 6);
 
   return (
     <div className="space-y-6 font-mono text-xs">
       <div className="border-b border-slate-800 pb-3">
-        <h2 className="text-xl font-extrabold text-white">Market Movers & Trending Analytics</h2>
+        <h2 className="text-xl font-extrabold text-white">Market Movers & Volume Leaders</h2>
         <p className="text-[11px] text-slate-400 mt-0.5">
           Real-time tracking of top performers, highest search volume coins, and sharpest market pullbacks.
         </p>
@@ -47,7 +40,7 @@ export const TrendingMoversView: React.FC<TrendingMoversViewProps> = ({
         <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
           <div className="flex items-center gap-2 font-bold text-white text-sm">
             <Flame className="w-4 h-4 text-rose-500 fill-current" />
-            <span>Most Trending</span>
+            <span>Most Traded (24h Volume)</span>
           </div>
 
           <div className="space-y-2">

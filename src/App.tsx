@@ -159,6 +159,12 @@ export function App() {
         network={walletNetwork}
       />
 
+      {!isLiveFeed && !isLoadingFeed && (
+        <div role="status" className="bg-amber-500/10 border-b border-amber-500/30 text-amber-200 text-[11px] font-mono px-4 py-2 text-center">
+          Live market data is temporarily unavailable. The figures below are an illustrative snapshot, not current prices — please do not use them for trading decisions.
+        </div>
+      )}
+
       {/* 3. Main Content Router */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-8 min-w-0">
         {/* View: Markets (Default Home) */}
@@ -172,7 +178,6 @@ export function App() {
                 const found = tokens.find((t) => t.id === tokenId);
                 if (found) setSelectedToken(found);
               }}
-              onSelectIco={() => setActiveTab('icodrops')}
             />
 
             {/* Cryptocurrencies Table */}
@@ -230,6 +235,7 @@ export function App() {
           onClose={() => setSelectedToken(null)}
           isWatchlisted={watchlist.includes(selectedToken.id)}
           onToggleWatchlist={handleToggleWatchlist}
+          currency={selectedCurrency}
         />
       )}
 

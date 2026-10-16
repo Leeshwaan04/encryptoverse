@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   Star,
@@ -17,6 +17,7 @@ interface TokenDetailModalProps {
   onClose: () => void;
   isWatchlisted: boolean;
   onToggleWatchlist: (tokenId: string) => void;
+  currency?: string;
 }
 
 export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
@@ -24,25 +25,48 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
   onClose,
   isWatchlisted,
   onToggleWatchlist,
+  currency = 'usd',
 }) => {
-  const [timeRange, setTimeRange] = useState<'1D' | '7D' | '1M' | '1Y' | 'ALL'>('7D');
+  const [timeRange, setTimeRange] = useState<'1D' | '7D' | '1M' | '1Y'>('7D');
   const [hoveredPrice, setHoveredPrice] = useState<number | null>(null);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
 
+  const tokenId = token?.id;
+  // Keyed result: "loading" is derived (result.key !== current key), so no synchronous setState in the effect.
+  const chartKey = `${tokenId}|${timeRange}|${currency}`;
+  const [chartResult, setChartResult] = useState<{ key: string; series: number[] | null }>({ key: '', series: null });
+  const chartState: 'loading' | 'ready' | 'error' =
+    chartResult.key !== chartKey ? 'loading' : chartResult.series ? 'ready' : 'error';
+
+  // Real price history from /api/chart (CoinGecko market_chart via the edge proxy)
+  useEffect(() => {
+    if (!tokenId) return;
+    let ignore = false;
+    const days = { '1D': '1', '7D': '7', '1M': '30', '1Y': '365' }[timeRange];
+    const key = `${tokenId}|${timeRange}|${currency}`;
+    fetch(`/api/chart?id=${encodeURIComponent(tokenId)}&days=${days}&currency=${currency.toLowerCase()}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`chart HTTP ${r.status}`);
+        return r.json() as Promise<{ data: { points: [number, number][] } }>;
+      })
+      .then((j) => {
+        const prices = j.data.points.map((pt) => pt[1]);
+        if (prices.length < 2) throw new Error('not enough data');
+        if (!ignore) setChartResult({ key, series: prices });
+      })
+      .catch(() => {
+        if (!ignore) setChartResult({ key, series: null });
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [tokenId, timeRange, currency]);
+
   if (!token) return null;
 
-  // Multiplier mock points for different timeframes
-  const timeMultipliers = {
-    '1D': [0.985, 0.99, 1.01, 1.005, 0.995, 1.015, 1.0],
-    '7D': [0.93, 0.95, 0.98, 0.96, 0.99, 1.02, 1.0],
-    '1M': [0.85, 0.91, 0.88, 0.95, 1.04, 0.98, 1.0],
-    '1Y': [0.45, 0.60, 0.75, 0.70, 0.88, 0.95, 1.0],
-    ALL: [0.05, 0.15, 0.40, 0.65, 0.80, 0.92, 1.0],
-  };
-
-  const chartData = timeMultipliers[timeRange].map((m) => token.price * m);
-  const minVal = Math.min(...chartData);
-  const maxVal = Math.max(...chartData);
+  const chartData = chartState === 'ready' && chartResult.series ? chartResult.series : [];
+  const minVal = chartData.length ? Math.min(...chartData) : 0;
+  const maxVal = chartData.length ? Math.max(...chartData) : 0;
   const range = maxVal - minVal || 1;
 
   const width = 680;
@@ -55,9 +79,9 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
   });
 
   const polylineStr = pointsCoords.map((p) => `${p.x},${p.y}`).join(' ');
-  const areaPath = `${pointsCoords[0].x},${height} ${polylineStr} ${
-    pointsCoords[pointsCoords.length - 1].x
-  },${height}`;
+  const areaPath = pointsCoords.length
+    ? `${pointsCoords[0].x},${height} ${polylineStr} ${pointsCoords[pointsCoords.length - 1].x},${height}`
+    : '';
 
   const isPositive = token.change24h >= 0;
   const strokeColor = isPositive ? '#10b981' : '#f43f5e';
@@ -168,7 +192,7 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
 
             {/* Timeframe Buttons */}
             <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[11px]">
-              {(['1D', '7D', '1M', '1Y', 'ALL'] as const).map((t) => (
+              {(['1D', '7D', '1M', '1Y'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => {
@@ -189,6 +213,11 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
 
           {/* SVG Canvas Area */}
           <div className="w-full bg-[#05070b] border border-slate-800/80 rounded-xl p-3 relative overflow-hidden">
+            {chartState !== 'ready' ? (
+              <div className="w-full h-48 flex items-center justify-center text-[11px] text-slate-500">
+                {chartState === 'loading' ? 'Loading price history…' : 'Price history is temporarily unavailable.'}
+              </div>
+            ) : (
             <svg
               viewBox={`0 0 ${width} ${height}`}
               className="w-full h-48 overflow-visible"
@@ -218,15 +247,15 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
                   key={i}
                   cx={p.x}
                   cy={p.y}
-                  r="4"
-                  fill="#fff"
-                  stroke={strokeColor}
-                  strokeWidth="2"
-                  className="cursor-pointer hover:r-6 transition"
+                  r="5"
+                  fill="transparent"
+                  stroke="none"
+                  className="cursor-crosshair hover:fill-white"
                   onMouseEnter={() => setHoveredPrice(p.val)}
                 />
               ))}
             </svg>
+            )}
           </div>
         </div>
 
