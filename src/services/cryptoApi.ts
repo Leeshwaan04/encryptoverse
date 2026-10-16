@@ -108,6 +108,21 @@ function sampleSparkline(prices: number[] | null | undefined, fallback: number):
 
 const num = (v: number | null | undefined, fallback = 0): number => (Number.isFinite(v) ? (v as number) : fallback);
 
+/**
+ * Only let http(s) URLs out of the API layer and into the DOM.
+ * A compromised or spoofed upstream could otherwise hand us `javascript:` or
+ * `data:text/html` and have us render it into an href or src.
+ */
+function safeUrl(value: string | null | undefined): string {
+  if (!value) return '';
+  try {
+    const url = new URL(value, window.location.origin);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
 const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return '';
   const d = new Date(iso);
@@ -194,7 +209,7 @@ export async function fetchLiveCryptoTokens(
           rank,
           name: item.name || symbol,
           symbol,
-          icon: item.image || '',
+          icon: safeUrl(item.image),
           price,
           change1h: Number(num(item.price_change_percentage_1h_in_currency).toFixed(2)),
           change24h: Number(num(item.price_change_percentage_24h_in_currency).toFixed(2)),
