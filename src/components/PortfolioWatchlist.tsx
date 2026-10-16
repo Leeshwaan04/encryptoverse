@@ -25,9 +25,9 @@ export const PortfolioWatchlist: React.FC<PortfolioWatchlistProps> = ({
   const [holdings, setHoldings] = useState<Record<string, number>>(() => {
     try {
       const saved = localStorage.getItem('encryptoverse_holdings');
-      return saved ? JSON.parse(saved) : { bitcoin: 0.25, ethereum: 2.0, solana: 15 };
+      return saved ? JSON.parse(saved) : {};
     } catch {
-      return { bitcoin: 0.25, ethereum: 2.0, solana: 15 };
+      return {};
     }
   });
 
@@ -84,7 +84,7 @@ export const PortfolioWatchlist: React.FC<PortfolioWatchlistProps> = ({
           <div>
             <span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-bold">
               <Wallet className="w-4 h-4 text-cyan-400" />
-              Simulated Portfolio Valuation
+              Your Portfolio Value
             </span>
             <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
               ${totalPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

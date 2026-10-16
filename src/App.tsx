@@ -12,6 +12,8 @@ import { CryptoConverter } from './components/CryptoConverter';
 import { WalletModal } from './components/WalletModal';
 import { Footer } from './components/Footer';
 import { Hero } from './components/Hero';
+import { InfoPage } from './pages/InfoPage';
+import { pageForPath } from './pages/InfoPages';
 import { cryptoTokens, globalMarketStats, type CryptoToken } from './data/cryptoData';
 import {
   fetchLiveCryptoTokens,
@@ -23,6 +25,26 @@ import {
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('markets');
+  // Lightweight path router for the static info pages (About, Methodology, Privacy, ...)
+  const [path, setPath] = useState<string>(() => window.location.pathname);
+  const infoPage = pageForPath(path);
+  useEffect(() => {
+    const onPop = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  const navigate = useCallback((to: string) => {
+    if (window.location.pathname !== to) window.history.pushState({}, '', to);
+    setPath(to);
+    window.scrollTo({ top: 0 });
+  }, []);
+  const selectTab = useCallback(
+    (id: string) => {
+      setActiveTab(id);
+      if (window.location.pathname !== '/') navigate('/');
+    },
+    [navigate],
+  );
   const [selectedCurrency, setSelectedCurrency] = useState<string>('USD');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(null);
@@ -44,9 +66,9 @@ export function App() {
   const [watchlist, setWatchlist] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('encryptoverse_watchlist');
-      return saved ? JSON.parse(saved) : ['bitcoin', 'ethereum', 'solana', 'bittensor'];
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return ['bitcoin', 'ethereum', 'solana', 'bittensor'];
+      return [];
     }
   });
 
@@ -151,7 +173,7 @@ export function App() {
       {/* 2. Main Navigation Bar */}
       <Navbar
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={selectTab}
         watchlistCount={watchlist.length}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -166,19 +188,24 @@ export function App() {
         </div>
       )}
 
-      {activeTab === 'markets' && (
+      {!infoPage && activeTab === 'markets' && (
         <Hero
           tokens={tokens}
           stats={marketStats}
           currency={selectedCurrency}
           isLive={isLiveFeed}
           onSelectToken={setSelectedToken}
-          onOpenConverter={() => setActiveTab('converter')}
+          onOpenConverter={() => selectTab('converter')}
         />
       )}
 
       {/* 3. Main Content Router */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-8 min-w-0">
+      {infoPage && (
+        <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 min-w-0">
+          <InfoPage page={infoPage} onNavigate={navigate} />
+        </main>
+      )}
+      <main hidden={Boolean(infoPage)} className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-8 min-w-0">
         {/* View: Markets (Default Home) */}
         {activeTab === 'markets' && (
           <div className="space-y-6">
@@ -263,7 +290,7 @@ export function App() {
       />
 
       {/* Footer */}
-      <Footer />
+      <Footer onNavigate={navigate} onSelectTab={selectTab} isLive={isLiveFeed} />
     </div>
   );
 }
