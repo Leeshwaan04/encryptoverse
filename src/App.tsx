@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { GlobalMarketHeader } from './components/GlobalMarketHeader';
 import { Navbar } from './components/Navbar';
+import { NAV_TABS, type TabId } from './lib/navTabs';
 import { MarketHighlights } from './components/MarketHighlights';
 import { CryptoTable } from './components/CryptoTable';
 import { TokenDetailModal } from './components/TokenDetailModal';
@@ -13,235 +14,283 @@ import { WalletModal } from './components/WalletModal';
 import { Footer } from './components/Footer';
 import { cryptoTokens, globalMarketStats, type CryptoToken } from './data/cryptoData';
 import {
+  fetchFearGreed,
   fetchLiveCryptoTokens,
   fetchLiveGlobalStats,
-  type LiveMarketResult,
-  type GlobalStatsResult,
+  type FearGreedResult,
 } from './services/cryptoApi';
+import {
+  CURRENCIES,
+  isStringArray,
+  readStorage,
+  writeStorage,
+  type Currency,
+} from './lib/crypto-utils';
+
+const AUTO_REFRESH_MS = 120_000;
+const DEFAULT_WATCHLIST = ['bitcoin', 'ethereum', 'solana'];
+
+interface ViewState {
+  tab: TabId;
+  coin: string | null;
+  currency: Currency;
+}
+
+/** View state lives in the URL so reload, Back/Forward and sharing all work. */
+function readUrl(): ViewState {
+  const p = new URLSearchParams(window.location.search);
+  const tab = p.get('tab');
+  const cur = p.get('cur')?.toUpperCase();
+  return {
+    tab: (NAV_TABS.some((t) => t.id === tab) ? tab : 'markets') as TabId,
+    coin: p.get('coin'),
+    currency: (CURRENCIES.includes(cur as Currency) ? cur : 'USD') as Currency,
+  };
+}
+
+function writeUrl(state: ViewState, push: boolean): void {
+  const p = new URLSearchParams();
+  if (state.tab !== 'markets') p.set('tab', state.tab);
+  if (state.coin) p.set('coin', state.coin);
+  if (state.currency !== 'USD') p.set('cur', state.currency);
+  const qs = p.toString();
+  const next = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+  if (next === `${window.location.pathname}${window.location.search}`) return;
+  if (push) window.history.pushState(null, '', next);
+  else window.history.replaceState(null, '', next);
+}
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<string>('markets');
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('USD');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>(() => readUrl().tab);
+  const [currency, setCurrency] = useState<Currency>(() => readUrl().currency);
+  const [selectedCoinId, setSelectedCoinId] = useState<string | null>(() => readUrl().coin);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Live Market & Global Data State
   const [tokens, setTokens] = useState<CryptoToken[]>(cryptoTokens);
   const [marketStats, setMarketStats] = useState<typeof globalMarketStats>(globalMarketStats);
-  const [isLiveFeed, setIsLiveFeed] = useState<boolean>(false);
-  const [isCachedFeed, setIsCachedFeed] = useState<boolean>(false);
-  const [isLoadingFeed, setIsLoadingFeed] = useState<boolean>(false);
+  const [fearGreed, setFearGreed] = useState<FearGreedResult | null>(null);
+  const [isLive, setIsLive] = useState(false);
+  const [isCached, setIsCached] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [feedError, setFeedError] = useState<string | undefined>();
   const [lastUpdated, setLastUpdated] = useState<Date>(() => new Date());
 
-  // Web3 Wallet Modal & State
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState<boolean>(false);
-  const [walletAddress, setWalletAddress] = useState<string>('');
-  const [walletNetwork, setWalletNetwork] = useState<string>('Ethereum Mainnet');
+  const [isWalletOpen, setIsWalletOpen] = useState(false);
+  const [walletAddress, setWalletAddress] = useState('');
+  const [walletNetwork, setWalletNetwork] = useState('Ethereum Mainnet');
 
-  // Watchlist stored in localStorage
-  const [watchlist, setWatchlist] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('encryptoverse_watchlist');
-      return saved ? JSON.parse(saved) : ['bitcoin', 'ethereum', 'solana', 'bittensor'];
-    } catch {
-      return ['bitcoin', 'ethereum', 'solana', 'bittensor'];
-    }
-  });
+  const [watchlist, setWatchlist] = useState<string[]>(() =>
+    readStorage('encryptoverse_watchlist', DEFAULT_WATCHLIST, isStringArray)
+  );
 
-  const loadMarketData = useCallback(async (currency: string) => {
-    setIsLoadingFeed(true);
-    try {
-      const [tokenRes, statsRes]: [LiveMarketResult, GlobalStatsResult] = await Promise.all([
-        fetchLiveCryptoTokens(currency),
-        fetchLiveGlobalStats(),
-      ]);
+  // Rapid currency switches would otherwise let a slow earlier response
+  // overwrite a newer one, showing prices in the wrong denomination.
+  const requestId = useRef(0);
 
-      if (tokenRes.tokens && tokenRes.tokens.length > 0) {
-        setTokens(tokenRes.tokens);
-      }
-      if (statsRes.stats) {
-        setMarketStats(statsRes.stats);
-      }
-      setIsLiveFeed(tokenRes.isLive);
-      setIsCachedFeed(tokenRes.isCached);
-      setLastUpdated(tokenRes.lastUpdated);
-    } catch {
-      // Offline fallback already handled in service
-    } finally {
-      setIsLoadingFeed(false);
-    }
+  const load = useCallback(async (cur: Currency, force = false) => {
+    const id = ++requestId.current;
+    setIsLoading(true);
+    const [tokenRes, statsRes] = await Promise.all([
+      fetchLiveCryptoTokens(cur, { force }),
+      fetchLiveGlobalStats(),
+    ]);
+    if (id !== requestId.current) return;
+    if (tokenRes.tokens.length > 0) setTokens(tokenRes.tokens);
+    setMarketStats(statsRes.stats);
+    setIsLive(tokenRes.isLive);
+    setIsCached(tokenRes.isCached);
+    setFeedError(tokenRes.error);
+    setLastUpdated(tokenRes.lastUpdated);
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
-    let ignore = false;
-    const run = async () => {
-      setIsLoadingFeed(true);
-      try {
-        const [tokenRes, statsRes]: [LiveMarketResult, GlobalStatsResult] = await Promise.all([
-          fetchLiveCryptoTokens(selectedCurrency),
-          fetchLiveGlobalStats(),
-        ]);
-        if (!ignore) {
-          if (tokenRes.tokens && tokenRes.tokens.length > 0) {
-            setTokens(tokenRes.tokens);
-          }
-          if (statsRes.stats) {
-            setMarketStats(statsRes.stats);
-          }
-          setIsLiveFeed(tokenRes.isLive);
-          setIsCachedFeed(tokenRes.isCached);
-          setLastUpdated(tokenRes.lastUpdated);
-        }
-      } catch {
-        // Fallback handled in service
-      } finally {
-        if (!ignore) {
-          setIsLoadingFeed(false);
-        }
-      }
-    };
-    run();
-    return () => {
-      ignore = true;
-    };
-  }, [selectedCurrency]);
+    void load(currency);
+    const timer = window.setInterval(() => {
+      // Don't burn rate limit on a tab nobody is looking at.
+      if (document.visibilityState === 'visible') void load(currency);
+    }, AUTO_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [currency, load]);
 
-  const handleToggleWatchlist = (tokenId: string) => {
-    let next: string[];
-    if (watchlist.includes(tokenId)) {
-      next = watchlist.filter((id) => id !== tokenId);
-    } else {
-      next = [...watchlist, tokenId];
-    }
-    setWatchlist(next);
-    try {
-      localStorage.setItem('encryptoverse_watchlist', JSON.stringify(next));
-    } catch {
-      // Storage fallback
-    }
+  useEffect(() => {
+    void fetchFearGreed().then(setFearGreed);
+  }, []);
+
+  useEffect(() => {
+    writeUrl({ tab: activeTab, coin: selectedCoinId, currency }, false);
+  }, [activeTab, selectedCoinId, currency]);
+
+  useEffect(() => {
+    const onPop = () => {
+      const s = readUrl();
+      setActiveTab(s.tab);
+      setSelectedCoinId(s.coin);
+      setCurrency(s.currency);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const selectTab = (tab: TabId) => {
+    if (tab === activeTab) return;
+    writeUrl({ tab, coin: null, currency }, true);
+    setActiveTab(tab);
+    setSelectedCoinId(null);
   };
 
-  // Search filtering
-  const displayedTokens = tokens.filter((t) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      t.name.toLowerCase().includes(q) ||
-      t.symbol.toLowerCase().includes(q) ||
-      t.category.toLowerCase().includes(q)
-    );
-  });
+  const openToken = (token: CryptoToken) => {
+    writeUrl({ tab: activeTab, coin: token.id, currency }, true);
+    setSelectedCoinId(token.id);
+  };
+
+  const closeToken = () => {
+    setSelectedCoinId(null);
+    writeUrl({ tab: activeTab, coin: null, currency }, true);
+  };
+
+  // Search filters the market table, so typing anywhere brings that table into view.
+  const onSearchChange = (q: string) => {
+    setSearchQuery(q);
+    if (q && activeTab !== 'markets') selectTab('markets');
+  };
+
+  const toggleWatchlist = (tokenId: string) => {
+    setWatchlist((prev) => {
+      const next = prev.includes(tokenId) ? prev.filter((id) => id !== tokenId) : [...prev, tokenId];
+      writeStorage('encryptoverse_watchlist', next);
+      return next;
+    });
+  };
+
+  const selectedToken = selectedCoinId ? (tokens.find((t) => t.id === selectedCoinId) ?? null) : null;
+
+  const q = searchQuery.trim().toLowerCase();
+  const displayedTokens = q
+    ? tokens.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.symbol.toLowerCase().includes(q) ||
+          t.category.toLowerCase().includes(q)
+      )
+    : tokens;
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* 1. CoinMarketCap/CoinGecko Top Ticker Bar */}
+    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-100">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-cyan-400 focus:text-slate-950 focus:font-semibold"
+      >
+        Skip to content
+      </a>
+
       <GlobalMarketHeader
-        selectedCurrency={selectedCurrency}
-        onCurrencyChange={setSelectedCurrency}
+        currency={currency}
+        onCurrencyChange={setCurrency}
         stats={marketStats}
-        isLive={isLiveFeed}
-        isCached={isCachedFeed}
-        isLoading={isLoadingFeed}
-        onRefresh={() => loadMarketData(selectedCurrency)}
+        fearGreed={fearGreed}
+        isLive={isLive}
+        isCached={isCached}
+        isLoading={isLoading}
+        error={feedError}
+        onRefresh={() => void load(currency, true)}
         lastUpdated={lastUpdated}
       />
 
-      {/* 2. Main Navigation Bar */}
       <Navbar
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={selectTab}
         watchlistCount={watchlist.length}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onConnectWallet={() => setIsWalletModalOpen(true)}
+        onSearchChange={onSearchChange}
+        onConnectWallet={() => setIsWalletOpen(true)}
         walletAddress={walletAddress}
         network={walletNetwork}
       />
 
-      {/* 3. Main Content Router */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-        {/* View: Markets (Default Home) */}
+      <main id="main" className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {activeTab === 'markets' && (
-          <div className="space-y-6">
-            {/* Highlights row */}
+          <div className="space-y-8">
             <MarketHighlights
               tokens={tokens}
-              onSelectToken={(tokenId) => {
-                const found = tokens.find((t) => t.id === tokenId);
-                if (found) setSelectedToken(found);
-              }}
-              onSelectIco={() => setActiveTab('icodrops')}
+              currency={currency}
+              fearGreed={fearGreed}
+              onSelectToken={openToken}
+              onViewAll={() => selectTab('trending')}
+              onSelectIco={() => selectTab('icodrops')}
             />
 
-            {/* Cryptocurrencies Table */}
-            <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                <div>
-                  <h1 className="text-xl font-extrabold text-white">
-                    Top Cryptocurrency Prices by Market Cap
-                  </h1>
-                  <p className="text-[11px] font-mono text-slate-400 mt-0.5">
-                    Live market data, 24h trading volume, circulating supply, and 7-day sparklines.
-                  </p>
-                </div>
+            <section aria-labelledby="markets-heading" className="space-y-4">
+              <div>
+                <h1 id="markets-heading" className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                  Cryptocurrency prices by market cap
+                </h1>
+                <p className="text-sm text-slate-400 mt-1">
+                  {isLive
+                    ? `Top 50 coins in ${currency}, from CoinGecko. Refreshes every 2 minutes.`
+                    : 'Live prices are unavailable, so these are bundled sample figures and may be out of date.'}
+                </p>
               </div>
 
               <CryptoTable
                 tokens={displayedTokens}
+                currency={currency}
+                isLoading={isLoading && !isLive}
+                searchQuery={searchQuery}
+                onClearSearch={() => setSearchQuery('')}
                 watchlist={watchlist}
-                onToggleWatchlist={handleToggleWatchlist}
-                onSelectToken={setSelectedToken}
+                onToggleWatchlist={toggleWatchlist}
+                onSelectToken={openToken}
               />
-            </div>
+            </section>
           </div>
         )}
 
-        {/* View: ICO Drops & Launchpad */}
         {activeTab === 'icodrops' && <IcoDropsRadar />}
 
-        {/* View: Trending & Movers */}
         {activeTab === 'trending' && (
-          <TrendingMoversView tokens={tokens} onSelectToken={setSelectedToken} />
+          <TrendingMoversView tokens={tokens} currency={currency} onSelectToken={openToken} />
         )}
 
-        {/* View: Watchlist & Portfolio */}
         {activeTab === 'watchlist' && (
           <PortfolioWatchlist
             watchlist={watchlist}
             tokens={tokens}
-            onToggleWatchlist={handleToggleWatchlist}
-            onSelectToken={setSelectedToken}
+            currency={currency}
+            onToggleWatchlist={toggleWatchlist}
+            onSelectToken={openToken}
+            onBrowseMarkets={() => selectTab('markets')}
           />
         )}
 
-        {/* View: CoinDesk News */}
         {activeTab === 'news' && <CoinDeskNews />}
 
-        {/* View: Converter */}
-        {activeTab === 'converter' && <CryptoConverter tokens={tokens} />}
+        {activeTab === 'converter' && (
+          <CryptoConverter tokens={tokens} currency={currency} isLive={isLive} />
+        )}
       </main>
 
-      {/* In-Depth Token Modal (CoinGecko / CoinDesk style) */}
       {selectedToken && (
         <TokenDetailModal
           token={selectedToken}
-          onClose={() => setSelectedToken(null)}
+          currency={currency}
+          isLive={isLive}
+          onClose={closeToken}
           isWatchlisted={watchlist.includes(selectedToken.id)}
-          onToggleWatchlist={handleToggleWatchlist}
+          onToggleWatchlist={toggleWatchlist}
         />
       )}
 
-      {/* Interactive Web3 Wallet Modal */}
+      {/* Stays mounted while closed so the wallet session and its event listeners survive. */}
       <WalletModal
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
+        isOpen={isWalletOpen}
+        onClose={() => setIsWalletOpen(false)}
         walletAddress={walletAddress}
         onSetWalletAddress={setWalletAddress}
         network={walletNetwork}
         onSetNetwork={setWalletNetwork}
       />
 
-      {/* Footer */}
       <Footer />
     </div>
   );

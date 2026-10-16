@@ -1,239 +1,244 @@
 import React, { useState } from 'react';
-import {
-  Star,
-  TrendingUp,
-  TrendingDown,
-  Wallet
-} from 'lucide-react';
+import { Pencil, Star, Wallet } from 'lucide-react';
 import type { CryptoToken } from '../data/cryptoData';
-import { cypherSound } from '../lib/crypto-utils';
+import {
+  changeColor,
+  cypherSound,
+  formatAmount,
+  formatCompact,
+  formatPercentage,
+  formatPrice,
+  isHoldingsRecord,
+  readStorage,
+  writeStorage,
+  type Currency,
+} from '../lib/crypto-utils';
 
 interface PortfolioWatchlistProps {
   watchlist: string[];
   tokens: CryptoToken[];
+  currency: Currency;
   onToggleWatchlist: (tokenId: string) => void;
   onSelectToken: (token: CryptoToken) => void;
+  onBrowseMarkets: () => void;
 }
+
+const HOLDINGS_KEY = 'encryptoverse_holdings';
 
 export const PortfolioWatchlist: React.FC<PortfolioWatchlistProps> = ({
   watchlist,
   tokens,
+  currency,
   onToggleWatchlist,
   onSelectToken,
+  onBrowseMarkets,
 }) => {
-  // Holdings state: { tokenId: amount }
-  const [holdings, setHoldings] = useState<Record<string, number>>(() => {
-    try {
-      const saved = localStorage.getItem('encryptoverse_holdings');
-      return saved ? JSON.parse(saved) : { bitcoin: 0.25, ethereum: 2.0, solana: 15 };
-    } catch {
-      return { bitcoin: 0.25, ethereum: 2.0, solana: 15 };
-    }
-  });
+  // Starts empty. Seeding invented holdings would show a stranger a portfolio they never entered.
+  const [holdings, setHoldings] = useState<Record<string, number>>(() => readStorage(HOLDINGS_KEY, {}, isHoldingsRecord));
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
 
-  const [editingToken, setEditingToken] = useState<string | null>(null);
-  const [editAmount, setEditAmount] = useState<string>('');
-
-  const saveHoldings = (newHoldings: Record<string, number>) => {
-    setHoldings(newHoldings);
-    try {
-      localStorage.setItem('encryptoverse_holdings', JSON.stringify(newHoldings));
-    } catch {
-      // Storage fallback
-    }
-  };
-
-  const handleUpdateHolding = (tokenId: string) => {
-    const amt = parseFloat(editAmount);
-    if (!isNaN(amt) && amt >= 0) {
-      const updated = { ...holdings, [tokenId]: amt };
-      if (amt === 0) delete updated[tokenId];
-      saveHoldings(updated);
+  const save = (tokenId: string) => {
+    const amount = Number(draft);
+    if (draft.trim() !== '' && Number.isFinite(amount) && amount >= 0) {
+      const next = { ...holdings, [tokenId]: amount };
+      if (amount === 0) delete next[tokenId];
+      setHoldings(next);
+      writeStorage(HOLDINGS_KEY, next);
       cypherSound.playSuccess();
     }
-    setEditingToken(null);
-    setEditAmount('');
+    setEditing(null);
+    setDraft('');
   };
 
-  // Compute total portfolio valuation
-  const watchlistedTokens = tokens.filter((t) => watchlist.includes(t.id));
+  // Show everything starred plus anything held, so the total always matches the rows on screen.
+  const rows = tokens.filter((t) => watchlist.includes(t.id) || (holdings[t.id] ?? 0) > 0);
 
-  let totalPortfolioValue = 0;
-  let total24hProfitLoss = 0;
-
-  tokens.forEach((t) => {
-    const amt = holdings[t.id] || 0;
-    if (amt > 0) {
-      const curVal = amt * t.price;
-      const prevVal = curVal / (1 + t.change24h / 100);
-      totalPortfolioValue += curVal;
-      total24hProfitLoss += curVal - prevVal;
-    }
-  });
-
-  const portfolioPercentChange =
-    totalPortfolioValue > 0
-      ? (total24hProfitLoss / (totalPortfolioValue - total24hProfitLoss)) * 100
-      : 0;
+  let total = 0;
+  let change24h = 0;
+  for (const t of rows) {
+    const amount = holdings[t.id] ?? 0;
+    if (amount <= 0) continue;
+    const value = amount * t.price;
+    const previous = t.change24h > -100 ? value / (1 + t.change24h / 100) : value;
+    total += value;
+    change24h += value - previous;
+  }
+  const previousTotal = total - change24h;
+  const pct = previousTotal > 0 ? (change24h / previousTotal) * 100 : 0;
+  const hasHoldings = total > 0;
 
   return (
-    <div className="space-y-6 font-mono text-xs">
-      {/* Portfolio Summary Card */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-900 to-indigo-950/40 border border-slate-800 backdrop-blur-md">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      <section
+        aria-labelledby="portfolio-heading"
+        className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/50 border border-slate-800"
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
           <div>
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-bold">
-              <Wallet className="w-4 h-4 text-cyan-400" />
-              Simulated Portfolio Valuation
-            </span>
-            <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
-              ${totalPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <span
-                className={`font-bold text-xs flex items-center ${
-                  total24hProfitLoss >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                }`}
-              >
-                {total24hProfitLoss >= 0 ? (
-                  <TrendingUp className="w-3.5 h-3.5 mr-1" />
-                ) : (
-                  <TrendingDown className="w-3.5 h-3.5 mr-1" />
-                )}
-                {total24hProfitLoss >= 0 ? '+' : ''}$
-                {Math.abs(total24hProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-                ({portfolioPercentChange.toFixed(2)}% 24h)
-              </span>
-            </div>
+            <h1 id="portfolio-heading" className="text-sm text-slate-300 flex items-center gap-2 font-medium">
+              <Wallet className="w-4 h-4 text-cyan-400" aria-hidden="true" />
+              Portfolio value
+            </h1>
+            <p className="text-3xl sm:text-4xl font-bold text-white mt-1 tabular-nums">{formatPrice(total, currency)}</p>
+            {hasHoldings ? (
+              <p className={`mt-1 text-sm font-semibold tabular-nums ${changeColor(change24h)}`}>
+                {change24h >= 0 ? '+' : '-'}
+                {formatPrice(Math.abs(change24h), currency)} ({formatPercentage(pct)}) today
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-slate-400">Add an amount to any coin below to start tracking.</p>
+            )}
           </div>
-
-          <div className="text-right text-[11px] text-slate-400">
-            <span>Client-side Storage · 100% Private</span>
-          </div>
+          <p className="text-xs text-slate-400 max-w-[16rem] sm:text-right">
+            Held only in this browser. Nothing is sent to a server or linked to your wallet.
+          </p>
         </div>
-      </div>
+      </section>
 
-      {/* Watchlist Table */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-          <div className="flex items-center gap-2">
-            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-              Your Watchlist ({watchlistedTokens.length})
-            </h3>
-          </div>
-          <span className="text-slate-500 text-[10px] sm:text-[11px]">Click star icon on any coin to add or remove</span>
-        </div>
+      <section aria-labelledby="watchlist-heading" className="space-y-3">
+        <h2 id="watchlist-heading" className="flex items-center gap-2 font-semibold text-white">
+          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" aria-hidden="true" />
+          Watchlist <span className="text-slate-400 font-normal tabular-nums">({rows.length})</span>
+        </h2>
 
-        {watchlistedTokens.length === 0 ? (
-          <div className="p-8 rounded-xl bg-slate-950/60 border border-slate-800 text-center space-y-2">
-            <Star className="w-8 h-8 text-slate-700 mx-auto" />
-            <div className="text-slate-300 font-bold">Your watchlist is currently empty.</div>
-            <p className="text-slate-500 text-[11px]">
-              Browse the Cryptocurrencies market table and tap the star icon to track your favorite coins.
-            </p>
+        {rows.length === 0 ? (
+          <div className="p-10 rounded-2xl bg-slate-900/50 border border-dashed border-slate-700 text-center space-y-3">
+            <Star className="w-8 h-8 text-slate-600 mx-auto" aria-hidden="true" />
+            <p className="text-slate-100 font-semibold">Your watchlist is empty</p>
+            <p className="text-sm text-slate-400">Tap the star beside any coin to follow it here.</p>
+            <button
+              type="button"
+              onClick={onBrowseMarkets}
+              className="px-4 h-11 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-sm font-semibold"
+            >
+              Browse coins
+            </button>
           </div>
         ) : (
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 overflow-hidden shadow-lg">
-            <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left font-mono text-xs min-w-[340px]">
-                <thead className="bg-[#05070b] border-b border-slate-800 text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider select-none">
-                  <tr>
-                    <th className="py-2.5 sm:py-3 px-2 sm:px-3 w-8 sm:w-10 text-center"></th>
-                    <th className="py-2.5 sm:py-3 px-2 sm:px-3">Coin</th>
-                    <th className="py-2.5 sm:py-3 px-2 sm:px-4 text-right">Price</th>
-                    <th className="py-2.5 sm:py-3 px-2 sm:px-3 text-right">24h %</th>
-                    <th className="py-2.5 sm:py-3 px-2 sm:px-4 text-right hidden md:table-cell">Market Cap</th>
-                    <th className="py-2.5 sm:py-3 px-2 sm:px-4 text-right">Holdings</th>
-                    <th className="py-2.5 sm:py-3 px-2 sm:px-4 text-right">Value</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {watchlistedTokens.map((token) => {
-                    const myAmount = holdings[token.id] || 0;
-                    const myValue = myAmount * token.price;
-
-                    return (
-                      <tr key={token.id} className="hover:bg-slate-900/50 cursor-pointer">
-                        <td
+          <div className="rounded-xl border border-slate-800 bg-slate-950/70 overflow-x-auto">
+            <table className="w-full text-left text-sm tabular-nums">
+              <caption className="sr-only">Watchlist and holdings, valued in {currency}.</caption>
+              <thead className="bg-[#0a0d14] border-b border-slate-800 text-xs text-slate-400">
+                <tr>
+                  <th scope="col" className="w-12 py-2.5 pl-2">
+                    <span className="sr-only">Watchlist</span>
+                  </th>
+                  <th scope="col" className="py-2.5 px-3 font-medium">Coin</th>
+                  <th scope="col" className="py-2.5 px-3 font-medium text-right">Price</th>
+                  <th scope="col" className="py-2.5 px-3 font-medium text-right hidden sm:table-cell">24h</th>
+                  <th scope="col" className="py-2.5 px-3 font-medium text-right hidden md:table-cell">Market cap</th>
+                  <th scope="col" className="py-2.5 px-3 font-medium text-right">Holdings</th>
+                  <th scope="col" className="py-2.5 px-3 font-medium text-right hidden sm:table-cell">Value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {rows.map((token) => {
+                  const amount = holdings[token.id] ?? 0;
+                  const starred = watchlist.includes(token.id);
+                  const inputId = `holding-${token.id}`;
+                  return (
+                    <tr key={token.id} className="hover:bg-slate-900/60">
+                      <td className="py-1 pl-1">
+                        <button
+                          type="button"
                           onClick={() => {
                             onToggleWatchlist(token.id);
                             cypherSound.playBlip(720);
                           }}
-                          className="py-3 px-3 text-center"
+                          aria-label={starred ? `Remove ${token.name} from watchlist` : `Add ${token.name} to watchlist`}
+                          aria-pressed={starred}
+                          className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-slate-800/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
                         >
-                          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                        </td>
+                          <Star className={`w-4 h-4 ${starred ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'}`} />
+                        </button>
+                      </td>
 
-                        <td onClick={() => onSelectToken(token)} className="py-3 px-3">
-                          <div className="flex items-center gap-2">
-                            <img src={token.icon} alt={token.name} className="w-5 h-5 rounded-full" />
-                            <span className="font-bold text-white">{token.name}</span>
-                            <span className="text-[10px] text-slate-500">{token.symbol}</span>
-                          </div>
-                        </td>
-
-                        <td onClick={() => onSelectToken(token)} className="py-3 px-4 text-right font-bold text-white">
-                          ${token.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-
-                        <td
+                      <td className="py-3 px-3">
+                        <button
+                          type="button"
                           onClick={() => onSelectToken(token)}
-                          className={`py-3 px-3 text-right font-bold ${
-                            token.change24h >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                          }`}
+                          className="flex items-center gap-2.5 text-left rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
                         >
-                          {token.change24h >= 0 ? '+' : ''}{token.change24h}%
-                        </td>
+                          <img src={token.icon} alt="" loading="lazy" className="w-6 h-6 rounded-full bg-slate-800" />
+                          <span>
+                            <span className="block font-semibold text-white">{token.name}</span>
+                            <span className="block text-xs text-slate-400">{token.symbol}</span>
+                          </span>
+                        </button>
+                      </td>
 
-                        <td onClick={() => onSelectToken(token)} className="py-3 px-4 text-right text-slate-300">
-                          ${(token.marketCap / 1e9).toFixed(2)}B
-                        </td>
+                      <td className="py-3 px-3 text-right text-white font-medium whitespace-nowrap">
+                        {formatPrice(token.price, currency)}
+                      </td>
+                      <td className={`py-3 px-3 text-right font-medium hidden sm:table-cell ${changeColor(token.change24h)}`}>
+                        {formatPercentage(token.change24h)}
+                      </td>
+                      <td className="py-3 px-3 text-right text-slate-300 hidden md:table-cell whitespace-nowrap">
+                        {formatCompact(token.marketCap, currency)}
+                      </td>
 
-                        {/* Holdings Edit */}
-                        <td className="py-3 px-4 text-right">
-                          {editingToken === token.id ? (
-                            <div className="flex items-center justify-end gap-1">
-                              <input
-                                type="number"
-                                step="any"
-                                value={editAmount}
-                                onChange={(e) => setEditAmount(e.target.value)}
-                                placeholder="Amount"
-                                className="w-20 px-2 py-1 bg-slate-900 border border-slate-700 text-right text-white text-xs rounded"
-                              />
-                              <button
-                                onClick={() => handleUpdateHolding(token.id)}
-                                className="px-2 py-1 bg-cyan-600 text-white rounded text-[10px] font-bold"
-                              >
-                                Save
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setEditingToken(token.id);
-                                setEditAmount(myAmount ? myAmount.toString() : '');
+                      <td className="py-3 px-3 text-right">
+                        {editing === token.id ? (
+                          <form
+                            className="flex items-center justify-end gap-1.5"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              save(token.id);
+                            }}
+                          >
+                            <label htmlFor={inputId} className="sr-only">
+                              {token.symbol} amount held
+                            </label>
+                            <input
+                              id={inputId}
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              step="any"
+                              autoFocus
+                              value={draft}
+                              onChange={(e) => setDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Escape') {
+                                  e.stopPropagation();
+                                  setEditing(null);
+                                }
                               }}
-                              className="text-slate-400 hover:text-cyan-300 underline font-semibold"
-                            >
-                              {myAmount > 0 ? `${myAmount} ${token.symbol}` : '+ Add'}
+                              placeholder="0"
+                              className="w-24 px-2 h-10 bg-slate-900 border border-slate-700 focus:border-cyan-500 focus:outline-none text-right text-white rounded-md"
+                            />
+                            <button type="submit" className="px-3 h-10 bg-cyan-400 text-slate-950 rounded-md text-xs font-semibold">
+                              Save
                             </button>
-                          )}
-                        </td>
+                          </form>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditing(token.id);
+                              setDraft(amount ? String(amount) : '');
+                            }}
+                            aria-label={`Edit ${token.symbol} holdings`}
+                            className="inline-flex items-center gap-1.5 min-h-11 text-slate-300 hover:text-cyan-200 px-2 rounded-md hover:bg-slate-800"
+                          >
+                            {amount > 0 ? `${formatAmount(amount)} ${token.symbol}` : 'Add'}
+                            <Pencil className="w-3 h-3 opacity-60" aria-hidden="true" />
+                          </button>
+                        )}
+                      </td>
 
-                        <td className="py-3 px-4 text-right font-bold text-white">
-                          ${myValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      <td className="py-3 px-3 text-right text-white font-medium hidden sm:table-cell whitespace-nowrap">
+                        {amount > 0 ? formatPrice(amount * token.price, currency) : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 };
