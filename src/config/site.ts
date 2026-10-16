@@ -22,8 +22,8 @@ export interface DataSource {
 export const DATA_SOURCES: readonly DataSource[] = [
   { name: 'CoinLore', what: 'Coin list: prices, market cap, 24h volume, supply, 1h/24h/7d change and rank; global market totals', href: 'https://www.coinlore.com/cryptocurrency-data-api', primary: true },
   { name: 'DefiLlama', what: '7-day sparklines, long-range price history, chain TVL and stablecoin supply', href: 'https://defillama.com', primary: true },
-  { name: 'Binance', what: 'Price-history candles from the public market-data API (no account or key)', href: 'https://developers.binance.com/docs/binance-spot-api-docs/faqs/market_data_only', primary: true },
-  { name: 'Coinbase Exchange', what: 'Fallback price-history candles from the public API', href: 'https://docs.cdp.coinbase.com/exchange/introduction/welcome', primary: false },
+  { name: 'Coinbase Exchange', what: 'Price-history candles from the public API (no account or key)', href: 'https://docs.cdp.coinbase.com/exchange/introduction/welcome', primary: true },
+  { name: 'Binance', what: 'Fallback price-history candles from the public market-data API', href: 'https://developers.binance.com/docs/binance-spot-api-docs/faqs/market_data_only', primary: false },
   { name: 'Frankfurter (ECB)', what: 'EUR and GBP exchange rates from European Central Bank reference data', href: 'https://frankfurter.dev', primary: false },
   { name: 'GeckoTerminal', what: 'Newly created decentralised-exchange pools', href: 'https://www.geckoterminal.com', primary: true },
   { name: 'Snapshot', what: 'Active governance proposals', href: 'https://snapshot.box', primary: false },

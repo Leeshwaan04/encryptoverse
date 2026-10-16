@@ -16,7 +16,7 @@ const LLAMA: Record<Range, { days: number; period: string; points: number }> = {
 type Points = [number, number][];
 
 // GET /api/chart?id=bitcoin&symbol=BTC&days=7&currency=usd -> USD price history converted to the quote currency.
-// Provider order: Binance -> Coinbase -> DefiLlama (-> CoinGecko when a key is configured). Pairs are quoted in USDT/USD,
+// Provider order: Coinbase -> Binance -> DefiLlama (CoinGecko first when a key is configured). Pairs are quoted in USDT/USD,
 // treated as USD. Cached 10 min.
 export const onRequestGet = async (ctx: Ctx) => {
   const q = new URL(ctx.request.url).searchParams;
@@ -41,8 +41,9 @@ export const onRequestGet = async (ctx: Ctx) => {
       });
     }
     if (symbol) {
-      attempts.push({ name: 'Binance', run: async () => ({ points: await binanceCloses(symbol, range), source: 'Binance' }) });
+      // Coinbase first: Binance's public API answers 403 to Cloudflare's edge network, so it is only a fallback here.
       attempts.push({ name: 'Coinbase', run: async () => ({ points: await coinbaseCloses(symbol, range), source: 'Coinbase' }) });
+      attempts.push({ name: 'Binance', run: async () => ({ points: await binanceCloses(symbol, range), source: 'Binance' }) });
     }
     const l = LLAMA[range];
     attempts.push({ name: 'DefiLlama', run: async () => ({ points: await llamaChartPoints(id, l.days, l.period, l.points), source: 'DefiLlama' }) });
@@ -60,7 +61,7 @@ export const onRequestGet = async (ctx: Ctx) => {
       if (symbol.toUpperCase() === ref) {
         points = points.map(([t]) => [t, 1]);
       } else {
-        const refSeries = await binanceCloses(ref, range).catch(() => coinbaseCloses(ref, range));
+        const refSeries = await coinbaseCloses(ref, range).catch(() => binanceCloses(ref, range));
         points = points.map(([t, p]) => {
           let best = refSeries[0];
           for (const r of refSeries) if (Math.abs(r[0] - t) < Math.abs(best[0] - t)) best = r;

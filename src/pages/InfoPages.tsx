@@ -91,7 +91,7 @@ export const INFO_PAGES: InfoPageDef[] = [
             provider is a point of failure. The source currently in use is named on the page (for example in the hero banner).
           </li>
           <li>Market data: CoinLore, with sparklines from DefiLlama. If a CoinGecko API key is configured it is tried first. If everything fails, your browser falls back to calling CoinGecko directly, then to your last cached data, and the page says so.</li>
-          <li>Price history: Binance public candles, then Coinbase Exchange, then DefiLlama.</li>
+          <li>Price history: Coinbase Exchange public candles, then Binance, then DefiLlama.</li>
         </UL>
         <H2>Refresh rates</H2>
         <UL>
