@@ -1,6 +1,7 @@
 // Encryptoverse market data layer.
 // Talks to CoinGecko's public API with timeouts, caching, and graceful degradation.
 
+import { COIN_ID_RE } from '../config/seo';
 import { cryptoTokens, globalMarketStats, type CryptoToken, type GlobalStats } from '../data/cryptoData';
 
 const API_BASE = 'https://api.coingecko.com/api/v3';
@@ -78,7 +79,7 @@ const EXPLORERS: Record<string, string> = {
 };
 
 function explorerFor(id: string): string {
-  return EXPLORERS[id] ?? `https://www.coingecko.com/en/coins/${encodeURIComponent(id)}`;
+  return (Object.hasOwn(EXPLORERS, id) ? EXPLORERS[id] : undefined) ?? `https://www.coingecko.com/en/coins/${encodeURIComponent(id)}`;
 }
 
 function classifyCategory(id: string, symbol: string): CryptoToken['category'] {
@@ -239,7 +240,7 @@ export async function fetchLiveCryptoTokens(
 
     // Drop entries without the fields the UI depends on, rather than rendering NaN.
     const tokens: CryptoToken[] = data
-      .filter((item) => item && typeof item.id === 'string' && typeof item.symbol === 'string')
+      .filter((item) => item && typeof item.id === 'string' && COIN_ID_RE.test(item.id) && typeof item.symbol === 'string')
       .map((item, index) => {
         const id = item.id as string;
         const symbol = (item.symbol as string).toUpperCase();
@@ -248,7 +249,7 @@ export async function fetchLiveCryptoTokens(
         return {
           id,
           rank,
-          name: item.name || symbol,
+          name: typeof item.name === 'string' && item.name ? item.name.slice(0, 80) : symbol,
           symbol,
           icon: safeUrl(item.image),
           price,

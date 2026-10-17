@@ -166,7 +166,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             value={searchQuery}
             onChange={onSearchChange}
             inputRef={searchRef}
-            className="hidden sm:block w-40 md:w-48 lg:w-36 xl:w-56"
+            className="hidden sm:block w-40 md:w-48 lg:w-28 xl:w-56"
           />
 
           <button
@@ -175,7 +175,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             aria-label={musicLabel}
             aria-pressed={musicOn}
             title={musicLabel}
-            className={`hidden sm:flex lg:hidden xl:flex w-10 h-10 items-center justify-center rounded-lg border transition ${
+            className={`hidden sm:flex w-10 h-10 items-center justify-center rounded-lg border transition ${
               musicOn
                 ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20'
                 : 'border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'

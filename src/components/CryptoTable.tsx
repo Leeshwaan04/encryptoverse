@@ -147,7 +147,7 @@ export const CryptoTable: React.FC<CryptoTableProps> = ({
             </thead>
 
             <tbody className="divide-y divide-slate-800/60">
-              {isLoading && tokens.length === 0
+              {isLoading
                 ? Array.from({ length: 8 }, (_, i) => (
                     <tr key={i}>
                       <td colSpan={10} className="py-3 px-3">

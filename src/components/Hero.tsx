@@ -14,6 +14,8 @@ interface HeroProps {
   source: string;
   onSelectToken: (token: CryptoToken) => void;
   onOpenConverter: () => void;
+  /** A coin detail is open (/coin/<id>): its name is the page heading, so this headline stops being the h1. */
+  coinOpen?: boolean;
 }
 
 const prefersReducedMotion = () =>
@@ -47,7 +49,7 @@ function useCountUp(target: number, duration = 1100): number {
 
 const formatTrillions = (n: number) => `$${(n / 1e12).toFixed(2)}T`;
 
-export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, isLive, source, onSelectToken, onOpenConverter }) => {
+export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, isLive, source, onSelectToken, onOpenConverter, coinOpen = false }) => {
   const sectionRef = useRef<HTMLElement>(null);
   const videoWrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -120,6 +122,8 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
 
   const delay = (s: number) => ({ '--d': `${s}s` }) as React.CSSProperties;
 
+  const Headline = coinOpen ? 'p' : 'h1';
+
   return (
     <section ref={sectionRef} className="relative isolate w-full overflow-hidden bg-[#07090e] border-b border-slate-800/70" aria-label="Encryptoverse introduction">
       {/* Background video (poster shown first, video fades in once playable) */}
@@ -166,11 +170,11 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
             {isLive ? `Live data · ${source}` : 'Live feed unavailable · showing snapshot'}
           </div>
 
-          <h1 className="hero-rise text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-white" style={delay(0.15)}>
+          <Headline className="hero-rise text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-white" style={delay(0.15)}>
             The crypto market,
             <br />
             <span className="bg-gradient-to-r from-cyan-300 via-sky-400 to-indigo-400 bg-clip-text text-transparent [text-shadow:none]">in one clear view.</span>
-          </h1>
+          </Headline>
 
           <p className="hero-rise text-sm sm:text-base text-slate-300/90 leading-relaxed max-w-lg" style={delay(0.3)}>
             Prices, market cap, volume and sentiment for the top 50 cryptocurrencies. Every figure links back to a named source — no hidden

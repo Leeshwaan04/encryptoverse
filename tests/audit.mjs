@@ -295,6 +295,40 @@ async function clearOverlay(p) {
     await p.goto(BASE, { waitUntil: 'networkidle' });
     return { pass: open && fellBack, detail: `deepLinkModal=${open} unknownHandled=${fellBack}` };
   });
+  await check('Routing', 'Closing the coin modal does not leave a Back entry that reopens it', async () => {
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(600);
+    await p.locator('tbody a[href^="/coin/"]').first().click();
+    await p.waitForTimeout(500);
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(500);
+    const closedAt = new URL(p.url()).pathname;
+    const reopened = (await p.locator('[role=dialog]').count()) > 0;
+    return { pass: closedAt === '/' && !reopened, detail: `afterClose=${closedAt} modal=${reopened}` };
+  });
+  await check('SEO', 'Exactly one h1 on every tab and while a coin is open', async () => {
+    const bad = [];
+    for (const path of ['/', '/token-sales', '/trending', '/defi', '/news', '/converter', '/watchlist', '/coin/bitcoin']) {
+      await p.goto(BASE + path.slice(1), { waitUntil: 'networkidle' });
+      await p.waitForTimeout(900);
+      const n = await p.locator('h1').count();
+      if (n !== 1) bad.push(`${path}=${n}`);
+    }
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return { pass: bad.length === 0, detail: bad.join(' ') || 'all 8 views have one h1' };
+  });
+  await check('Layout', 'Music button reachable at 1024, 1100 and 1279px without overflow', async () => {
+    const bad = [];
+    for (const w of [1024, 1100, 1279]) {
+      await p.setViewportSize({ width: w, height: 800 });
+      await p.waitForTimeout(300);
+      const vis = await p.getByRole('button', { name: /background music/i }).filter({ visible: true }).count();
+      const over = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      if (vis < 1 || over > 0) bad.push(`${w}: visible=${vis} overflow=${over}`);
+    }
+    await p.setViewportSize({ width: 1440, height: 900 });
+    return { pass: bad.length === 0, detail: bad.join(' | ') || 'ok' };
+  });
   await check('Routing', 'Old ?tab= links redirect to the new path', async () => {
     await p.goto(BASE + '?tab=defi', { waitUntil: 'networkidle' });
     await p.waitForTimeout(500);

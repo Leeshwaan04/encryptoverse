@@ -20,6 +20,8 @@ interface TokenDetailModalProps {
   onClose: () => void;
   isWatchlisted: boolean;
   onToggleWatchlist: (tokenId: string) => void;
+  /** The coin is the page's main subject (/coin/<id> over the markets view), so its name is the page h1. */
+  asPageHeading?: boolean;
 }
 
 const RANGES: ChartRange[] = ['1D', '7D', '1M', '1Y'];
@@ -108,7 +110,9 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
   onClose,
   isWatchlisted,
   onToggleWatchlist,
+  asPageHeading = false,
 }) => {
+  const Heading = asPageHeading ? 'h1' : 'h2';
   const [range, setRange] = useState<ChartRange>('7D');
   const [chart, setChart] = useState<ChartState>({ status: 'loading' });
   const [copied, setCopied] = useState(false);
@@ -156,9 +160,9 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
         <div className="flex items-center gap-3 min-w-0">
           <img src={token.icon} alt="" className="w-9 h-9 rounded-full shrink-0 bg-slate-800" />
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-white truncate">
+            <Heading className="text-lg font-bold text-white truncate">
               {token.name} <span className="text-sm font-medium text-slate-400">{token.symbol}</span>
-            </h2>
+            </Heading>
             <p className="text-xs text-slate-400">
               Rank #{token.rank} · {token.category}
             </p>

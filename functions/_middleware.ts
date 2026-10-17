@@ -46,7 +46,7 @@ export const onRequest = async (ctx: MiddlewareCtx): Promise<Response> => {
   if (url.pathname.startsWith('/assets/') && isHtml) {
     return new Response('Not found', { status: 404, headers: { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' } });
   }
-  if (ctx.request.method !== 'GET' || !isHtml) return res;
+  if ((ctx.request.method !== 'GET' && ctx.request.method !== 'HEAD') || !isHtml) return res;
 
   const path = url.pathname;
   let meta: RouteMeta | undefined = ROUTE_TABLE[path];

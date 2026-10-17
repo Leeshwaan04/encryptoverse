@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { GlobalMarketHeader } from './components/GlobalMarketHeader';
 import { Navbar } from './components/Navbar';
 import { NAV_TABS, tabPath, type TabId } from './lib/navTabs';
-import { COIN_ID_RE, TAB_ROUTES, coinIdFromPath, coinMeta, coinPath } from './config/seo';
+import { COIN_ID_RE, ROUTE_TABLE, TAB_ROUTES, coinIdFromPath, coinMeta, coinPath } from './config/seo';
 import { applyRouteMeta } from './lib/routeMeta';
 import { MarketHighlights } from './components/MarketHighlights';
 import { CryptoTable } from './components/CryptoTable';
@@ -80,6 +80,13 @@ function App() {
   const [currency, setCurrency] = useState<Currency>(() => readUrl().currency);
   const [selectedCoinId, setSelectedCoinId] = useState<string | null>(() => readUrl().coin);
   const [searchQuery, setSearchQuery] = useState('');
+  // A URL the server answered with 404 (unknown path): the app shows the markets view but must stay out of search results.
+  const [landedOnUnknown] = useState(() => {
+    const p = window.location.pathname.replace(/\/+$/, '') || '/';
+    return !(p in ROUTE_TABLE) && !coinIdFromPath(p);
+  });
+  // True while the coin modal was opened by an in-app push, so closing it can pop that entry instead of stacking another.
+  const modalPushed = useRef(false);
 
   const [tokens, setTokens] = useState<CryptoToken[]>(cryptoTokens);
   const [marketStats, setMarketStats] = useState<typeof globalMarketStats>(globalMarketStats);
@@ -158,12 +165,15 @@ function App() {
             rank: coin.rank,
             ...(isLive ? { price: formatPrice(coin.price, currency), marketCap: formatCompact(coin.marketCap, currency), change24h: formatPercentage(coin.change24h) } : {}),
           })
-        : TAB_ROUTES[activeTab],
+        : landedOnUnknown
+          ? { ...TAB_ROUTES[activeTab], noindex: true }
+          : TAB_ROUTES[activeTab],
     );
-  }, [activeTab, infoPage, knownCoinId, tokens, isLive, currency]);
+  }, [activeTab, infoPage, knownCoinId, tokens, isLive, currency, landedOnUnknown]);
 
   useEffect(() => {
     const onPop = () => {
+      modalPushed.current = false;
       setPath(window.location.pathname);
       const s = readUrl();
       setActiveTab((prev) => s.tab ?? prev);
@@ -196,16 +206,24 @@ function App() {
     writeUrl({ tab, coin: null, currency }, true);
     setActiveTab(tab);
     setSelectedCoinId(null);
+    window.scrollTo({ top: 0 });
   };
 
   const openToken = (token: CryptoToken) => {
     writeUrl({ tab: activeTab, coin: token.id, currency }, true);
+    modalPushed.current = true;
     setSelectedCoinId(token.id);
   };
 
   const closeToken = () => {
     setSelectedCoinId(null);
-    writeUrl({ tab: activeTab, coin: null, currency }, true);
+    if (modalPushed.current) {
+      // Pop the entry that opened the modal, so Back does not reopen it.
+      modalPushed.current = false;
+      window.history.back();
+    } else {
+      writeUrl({ tab: activeTab, coin: null, currency }, false);
+    }
   };
 
   // Search filters the market table, so typing anywhere brings that table into view.
@@ -278,6 +296,7 @@ function App() {
           source={dataSource}
           onSelectToken={openToken}
           onOpenConverter={() => selectTab('converter')}
+          coinOpen={Boolean(selectedToken)}
         />
       )}
 
@@ -302,7 +321,9 @@ function App() {
                 <p className="text-sm text-slate-400 mt-1">
                   {isLive
                     ? `Top 50 coins in ${currency}, from ${dataSource}. Refreshes every 2 minutes.`
-                    : 'Live prices are unavailable, so these are bundled sample figures and may be out of date.'}
+                    : isLoading
+                      ? 'Loading live prices…'
+                      : 'Live prices are unavailable, so these are bundled sample figures and may be out of date.'}
                 </p>
               </div>
 
@@ -353,6 +374,7 @@ function App() {
           isLive={isLive}
           onClose={closeToken}
           isWatchlisted={watchlist.includes(selectedToken.id)}
+          asPageHeading={activeTab === 'markets'}
           onToggleWatchlist={toggleWatchlist}
         />
       )}

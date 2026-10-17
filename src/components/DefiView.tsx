@@ -50,9 +50,9 @@ export const DefiView: React.FC = () => {
   return (
     <section aria-labelledby="defi-heading" className="space-y-5">
       <div>
-        <h2 id="defi-heading" className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+        <h1 id="defi-heading" className="text-xl sm:text-2xl font-bold tracking-tight text-white">
           DeFi &amp; on-chain overview
-        </h2>
+        </h1>
         <p className="text-sm text-slate-400 mt-1">
           Open data on where value sits on-chain: TVL by blockchain, stablecoin supply, live governance votes and brand-new DEX pools.
           {active.status === 'ready' && ` Source: ${active.source}.`}

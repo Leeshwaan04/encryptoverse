@@ -57,7 +57,7 @@ export const CoinDeskNews: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <Newspaper className="w-4 h-4 text-cyan-400" />
-            <span className="text-xs font-bold text-white uppercase tracking-wider">Crypto Market News</span>
+            <h1 className="text-xs font-bold text-white uppercase tracking-wider">Crypto Market News</h1>
           </div>
           <p className="text-[11px] text-slate-400 mt-0.5">
             Latest headlines aggregated from CoinDesk and Cointelegraph RSS feeds. Each card links to the original article;
@@ -119,7 +119,7 @@ export const CoinDeskNews: React.FC = () => {
                     <Clock className="w-3 h-3" /> {timeAgo(article.publishedAt)}
                   </span>
                 </div>
-                <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition leading-snug">{article.title}</h4>
+                <h2 className="text-sm font-bold text-white group-hover:text-cyan-300 transition leading-snug">{article.title}</h2>
                 {article.summary && <p className="text-slate-400 text-[11px] leading-relaxed">{article.summary}</p>}
               </div>
               <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-cyan-400 font-bold">
