@@ -42,7 +42,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/50 to-transparent" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-24 sm:pb-10 space-y-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-10 space-y-12">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-x-6 gap-y-10">
           {/* Brand */}
           <div className="col-span-2 md:col-span-2 space-y-4">

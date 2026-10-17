@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Layers, Menu, Search, Volume2, VolumeX, Wallet, X } from 'lucide-react';
 import { cypherSound } from '../lib/crypto-utils';
+import { MUSIC_CREDIT, musicPlayer } from '../lib/music';
+import { useMusicState } from '../lib/useMusic';
 import { NAV_TABS, type TabId } from '../lib/navTabs';
 
 
@@ -68,7 +70,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   network,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [soundOn, setSoundOn] = useState(cypherSound.enabled);
+  const musicState = useMusicState();
+  const musicOn = musicState === 'playing' || musicState === 'loading';
+  const musicLabel = musicState === 'error' ? 'Music unavailable. Try again' : musicOn ? 'Stop background music' : 'Play background music';
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -96,13 +100,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     onSelectTab(id);
     setMenuOpen(false);
     cypherSound.playBlip(640, 'sine', 0.04);
-  };
-
-  const toggleSound = () => {
-    const next = !soundOn;
-    cypherSound.setEnabled(next);
-    setSoundOn(next);
-    if (next) cypherSound.playBlip(720, 'triangle', 0.05);
   };
 
   return (
@@ -163,12 +160,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             type="button"
-            onClick={toggleSound}
-            aria-label={soundOn ? 'Mute interface sounds' : 'Enable interface sounds'}
-            aria-pressed={soundOn}
-            className="hidden sm:flex lg:hidden xl:flex w-10 h-10 items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            onClick={() => musicPlayer.toggle()}
+            aria-label={musicLabel}
+            aria-pressed={musicOn}
+            title={`${musicLabel} · ${MUSIC_CREDIT.title} — ${MUSIC_CREDIT.artist}`}
+            className={`hidden sm:flex lg:hidden xl:flex w-10 h-10 items-center justify-center rounded-lg border transition ${
+              musicOn
+                ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20'
+                : 'border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
-            {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            {musicOn ? <Volume2 className="w-4 h-4" aria-hidden="true" /> : <VolumeX className="w-4 h-4" aria-hidden="true" />}
           </button>
 
           <button
@@ -248,12 +250,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
           <button
             type="button"
-            onClick={toggleSound}
-            aria-pressed={soundOn}
+            onClick={() => musicPlayer.toggle()}
+            aria-pressed={musicOn}
             className="col-span-2 text-left px-3 py-3 rounded-xl border border-slate-800 text-slate-300 flex items-center gap-2.5"
           >
-            {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            Interface sounds: {soundOn ? 'On' : 'Off'}
+            {musicOn ? <Volume2 className="w-4 h-4" aria-hidden="true" /> : <VolumeX className="w-4 h-4" aria-hidden="true" />}
+            Background music: {musicOn ? 'On' : 'Off'}
           </button>
         </nav>
       )}
