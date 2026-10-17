@@ -28,3 +28,12 @@ tests/out
 
 # Wrangler local state
 .wrangler
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+*.pem
+*.key

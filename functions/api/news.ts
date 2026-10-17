@@ -8,7 +8,7 @@ const FEEDS = [
 const decode = (s: string) =>
   s
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'")
+    .replace(/&(lt|gt|quot|#0?39|amp);/g, (_m, e: string) => ({ lt: '<', gt: '>', quot: '"', amp: '&' })[e] ?? "'")
     .trim();
 const strip = (s: string) => decode(s).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 const tag = (item: string, name: string) => {

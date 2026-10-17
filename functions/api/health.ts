@@ -1,16 +1,16 @@
-import { coingeckoFetch, json, type Ctx } from '../_lib';
+import { cached, coingeckoFetch, type Ctx } from '../_lib';
 
-// GET /api/health -> reports what each upstream returns to the edge. Always 200: Cloudflare replaces 502/504 bodies
-// from Workers with its own generic page, which hides the real cause.
-export const onRequestGet = async (ctx: Ctx) => {
+// GET /api/health -> reports whether each upstream answers from the edge (status, latency, size). Cached 60 s.
+export const onRequestGet = (ctx: Ctx) =>
+  cached(ctx, 60, async () => {
   const probe = async (name: string, run: () => Promise<Response>) => {
     const t0 = Date.now();
     try {
       const res = await run();
       const text = await res.text();
-      return { name, status: res.status, ok: res.ok, ms: Date.now() - t0, bytes: text.length, head: res.ok ? undefined : text.slice(0, 120) };
-    } catch (e) {
-      return { name, status: 0, ok: false, ms: Date.now() - t0, error: e instanceof Error ? e.message : String(e) };
+      return { name, status: res.status, ok: res.ok, ms: Date.now() - t0, bytes: text.length };
+    } catch {
+      return { name, status: 0, ok: false, ms: Date.now() - t0 };
     }
   };
   const get = (url: string) => () => fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'Encryptoverse/1.0 (+https://encryptoverse.com)' }, signal: AbortSignal.timeout(8000) });
@@ -27,5 +27,7 @@ export const onRequestGet = async (ctx: Ctx) => {
     probe('alternative.me', get('https://api.alternative.me/fng/?limit=1')),
     probe('coingecko ping', () => coingeckoFetch(ctx, '/ping')),
   ]);
-  return json({ checkedAt: new Date().toISOString(), coingeckoKeyConfigured: Boolean(ctx.env.COINGECKO_API_KEY), results }, 200, { 'Cache-Control': 'no-store' });
-};
+  // Cached for a minute so the page cannot be used to fan requests out to every provider. Provider error bodies and
+  // configuration flags are deliberately not exposed.
+  return { data: { checkedAt: new Date().toISOString(), results }, source: 'Encryptoverse' };
+});

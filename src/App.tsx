@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { GlobalMarketHeader } from './components/GlobalMarketHeader';
 import { Navbar } from './components/Navbar';
 import { NAV_TABS, tabPath, type TabId } from './lib/navTabs';
-import { TAB_ROUTES } from './config/seo';
+import { COIN_ID_RE, TAB_ROUTES, coinIdFromPath, coinMeta, coinPath } from './config/seo';
 import { applyRouteMeta } from './lib/routeMeta';
 import { MarketHighlights } from './components/MarketHighlights';
 import { CryptoTable } from './components/CryptoTable';
@@ -29,6 +29,9 @@ import {
 import {
   CURRENCIES,
   isStringArray,
+  formatCompact,
+  formatPercentage,
+  formatPrice,
   readStorage,
   writeStorage,
   type Currency,
@@ -38,7 +41,8 @@ const AUTO_REFRESH_MS = 120_000;
 const DEFAULT_WATCHLIST = ['bitcoin', 'ethereum', 'solana'];
 
 interface ViewState {
-  tab: TabId;
+  /** null on a /coin/<id> URL: the coin opens over whichever tab the visitor came from. */
+  tab: TabId | null;
   coin: string | null;
   currency: Currency;
 }
@@ -50,28 +54,29 @@ function readUrl(): ViewState {
   // Old links used `/?tab=defi`; they still resolve and are rewritten to `/defi`.
   const legacy = p.get('tab');
   const legacyTab = NAV_TABS.find((t) => t.id === legacy)?.id;
-  const tab = (pathname === '/' && legacyTab) || NAV_TABS.find((t) => t.path === pathname)?.id || 'markets';
+  const coinFromPath = coinIdFromPath(pathname);
+  const tab = coinFromPath ? null : (pathname === '/' && legacyTab) || NAV_TABS.find((t) => t.path === pathname)?.id || 'markets';
   const cur = p.get('cur')?.toUpperCase();
+  const legacyCoin = p.get('coin');
   return {
     tab,
-    coin: p.get('coin'),
+    coin: coinFromPath ?? (legacyCoin && COIN_ID_RE.test(legacyCoin) ? legacyCoin : null),
     currency: (CURRENCIES.includes(cur as Currency) ? cur : 'USD') as Currency,
   };
 }
 
-function writeUrl(state: ViewState, push: boolean): void {
+function writeUrl(state: ViewState & { tab: TabId }, push: boolean): void {
   const p = new URLSearchParams();
-  if (state.coin) p.set('coin', state.coin);
   if (state.currency !== 'USD') p.set('cur', state.currency);
   const qs = p.toString();
-  const next = `${tabPath(state.tab)}${qs ? `?${qs}` : ''}`;
+  const next = `${state.coin ? coinPath(state.coin) : tabPath(state.tab)}${qs ? `?${qs}` : ''}`;
   if (next === `${window.location.pathname}${window.location.search}`) return;
   if (push) window.history.pushState(null, '', next);
   else window.history.replaceState(null, '', next);
 }
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<TabId>(() => readUrl().tab);
+  const [activeTab, setActiveTab] = useState<TabId>(() => readUrl().tab ?? 'markets');
   const [currency, setCurrency] = useState<Currency>(() => readUrl().currency);
   const [selectedCoinId, setSelectedCoinId] = useState<string | null>(() => readUrl().coin);
   const [searchQuery, setSearchQuery] = useState('');
@@ -138,15 +143,32 @@ export function App() {
     if (!infoPage) writeUrl({ tab: activeTab, coin: selectedCoinId, currency }, false);
   }, [activeTab, selectedCoinId, currency, infoPage]);
 
+  // A coin id that is not in the live top-50 list has nothing to show: fall back to the tab instead of an empty URL.
   useEffect(() => {
-    if (!infoPage) applyRouteMeta(TAB_ROUTES[activeTab]);
-  }, [activeTab, infoPage]);
+    if (selectedCoinId && isLive && !tokens.some((t) => t.id === selectedCoinId)) setSelectedCoinId(null);
+  }, [selectedCoinId, isLive, tokens]);
+
+  useEffect(() => {
+    if (infoPage) return;
+    const coin = selectedCoinId ? tokens.find((t) => t.id === selectedCoinId) : undefined;
+    applyRouteMeta(
+      coin
+        ? coinMeta({
+            id: coin.id,
+            name: coin.name,
+            symbol: coin.symbol,
+            rank: coin.rank,
+            ...(isLive ? { price: formatPrice(coin.price, currency), marketCap: formatCompact(coin.marketCap, currency), change24h: formatPercentage(coin.change24h) } : {}),
+          })
+        : TAB_ROUTES[activeTab],
+    );
+  }, [activeTab, infoPage, selectedCoinId, tokens, isLive, currency]);
 
   useEffect(() => {
     const onPop = () => {
       setPath(window.location.pathname);
       const s = readUrl();
-      setActiveTab(s.tab);
+      setActiveTab((prev) => s.tab ?? prev);
       setSelectedCoinId(s.coin);
       setCurrency(s.currency);
     };

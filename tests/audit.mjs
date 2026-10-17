@@ -270,6 +270,31 @@ async function clearOverlay(p) {
     }
     return { pass: out.length === 0, detail: out.join(' | ') || 'all 5 tabs routed' };
   });
+  await check('Routing', 'Coin rows are real /coin/<id> links that open the detail modal', async () => {
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(800);
+    const link = p.locator('tbody a[href^="/coin/"]').first();
+    const href = await link.getAttribute('href');
+    await link.click();
+    await p.waitForTimeout(700);
+    const open = (await p.locator('[role=dialog]').count()) > 0;
+    const urlOk = new URL(p.url()).pathname === href;
+    const title = await p.title();
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(500);
+    const back = new URL(p.url()).pathname === '/';
+    return { pass: Boolean(href) && open && urlOk && /Price, Market Cap/.test(title) && back, detail: `href=${href} modal=${open} url=${urlOk} title="${title}" closedToHome=${back}` };
+  });
+  await check('Routing', '/coin/<id> deep link opens the modal; unknown coin falls back safely', async () => {
+    await p.goto(BASE + 'coin/bitcoin', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(900);
+    const open = (await p.locator('[role=dialog]').count()) > 0;
+    await p.goto(BASE + 'coin/definitely-not-a-coin', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(1200);
+    const fellBack = (await p.locator('[role=dialog]').count()) === 0;
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return { pass: open && fellBack, detail: `deepLinkModal=${open} unknownHandled=${fellBack}` };
+  });
   await check('Routing', 'Old ?tab= links redirect to the new path', async () => {
     await p.goto(BASE + '?tab=defi', { waitUntil: 'networkidle' });
     await p.waitForTimeout(500);

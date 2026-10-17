@@ -31,6 +31,6 @@ export const DATA_SOURCES: readonly DataSource[] = [
   { name: 'Ethereum JSON-RPC', what: 'Current Ethereum mainnet gas price (eth_gasPrice)', href: 'https://ethereum.org/en/developers/docs/apis/json-rpc/', primary: false },
   { name: 'CoinDesk', what: 'News headlines (RSS), linked to the original article', href: 'https://www.coindesk.com', primary: true },
   { name: 'Cointelegraph', what: 'News headlines (RSS), linked to the original article', href: 'https://cointelegraph.com', primary: true },
-  { name: 'Cryptocurrency Icons', what: 'Open-source (MIT) coin logos served via jsDelivr', href: 'https://github.com/spothq/cryptocurrency-icons', primary: false },
+  { name: 'Cryptocurrency Icons', what: 'Open-source (CC0) coin logos served via jsDelivr', href: 'https://github.com/spothq/cryptocurrency-icons', primary: false },
   { name: 'CoinGecko', what: 'Optional: used for market data only when an API key is configured, and as a direct fallback', href: 'https://www.coingecko.com', primary: false },
 ];

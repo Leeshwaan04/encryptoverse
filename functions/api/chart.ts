@@ -1,4 +1,4 @@
-import { cached, coingeckoFetch, upstreamJson, json, type Ctx } from '../_lib';
+import { cached, coingeckoFetch, knownCoinIds, upstreamJson, json, type Ctx } from '../_lib';
 import { binanceCloses, coinbaseCloses, type Range } from '../_providers/exchanges';
 import { llamaChartPoints } from '../_providers/defillama';
 import { fiatPerUsd } from '../_providers/fx';
@@ -28,6 +28,8 @@ export const onRequestGet = async (ctx: Ctx) => {
     return json({ error: 'Bad parameters' }, 400);
   }
   const range = days as Range;
+  const known = await knownCoinIds(ctx);
+  if (known && !known.has(id)) return json({ error: 'Unknown coin' }, 404, { 'Cache-Control': 'public, max-age=60' });
 
   return cached(ctx, range === '1' ? 180 : 600, async () => {
     const attempts: { name: string; run: () => Promise<{ points: Points; source: string }> }[] = [];

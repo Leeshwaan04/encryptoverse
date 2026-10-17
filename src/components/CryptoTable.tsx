@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, ChevronsUpDown, SearchX, Star } from 'lucide-react';
 import type { CryptoToken } from '../data/cryptoData';
+import { coinPath } from '../config/seo';
 import {
   changeColor,
   cypherSound,
@@ -182,11 +183,13 @@ export const CryptoTable: React.FC<CryptoTableProps> = ({
                         <td className="py-3 px-3 text-slate-400 hidden sm:table-cell">{token.rank}</td>
 
                         <td className="py-3 px-3">
-                          {/* A real button so the row is reachable and operable by keyboard. */}
-                          <button
-                            type="button"
+                          {/* A real link (/coin/<id>) so the row is crawlable, reachable and operable by keyboard. */}
+                          <a
+                            href={coinPath(token.id)}
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // let "open in new tab" work
+                              e.preventDefault();
                               onSelectToken(token);
                             }}
                             className="flex items-center gap-2.5 text-left rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
@@ -205,7 +208,7 @@ export const CryptoTable: React.FC<CryptoTableProps> = ({
                               </span>
                               <span className="block text-xs text-slate-400">{token.symbol}</span>
                             </span>
-                          </button>
+                          </a>
                         </td>
 
                         <td className="py-3 px-3 text-right font-semibold text-white whitespace-nowrap">

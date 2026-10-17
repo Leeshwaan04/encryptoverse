@@ -71,3 +71,33 @@ export const documentTitle = (m: RouteMeta): string =>
 export const ROUTE_TABLE: Record<string, RouteMeta> = Object.fromEntries(
   [...Object.values(TAB_ROUTES), ...Object.values(INFO_ROUTES)].map((m) => [m.path, m]),
 );
+
+export const COIN_PREFIX = '/coin/';
+/** Coin ids are lowercase slugs (CoinGecko-style), e.g. "bitcoin", "usd-coin". */
+export const COIN_ID_RE = /^[a-z0-9-]{1,64}$/;
+export const coinPath = (id: string): string => `${COIN_PREFIX}${id}`;
+/** The coin id when `pathname` is `/coin/<id>`, else null. */
+export const coinIdFromPath = (pathname: string): string | null => {
+  const m = pathname.replace(/\/+$/, '').startsWith(COIN_PREFIX) ? pathname.replace(/\/+$/, '').slice(COIN_PREFIX.length) : '';
+  return COIN_ID_RE.test(m) ? m : null;
+};
+
+export interface CoinFacts {
+  id: string;
+  name: string;
+  symbol: string;
+  /** Pre-formatted, e.g. "$67,250.12". Omitted when no live price is available. */
+  price?: string;
+  marketCap?: string;
+  change24h?: string;
+  rank?: number;
+}
+
+export const coinMeta = (c: CoinFacts): RouteMeta => ({
+  path: coinPath(c.id),
+  title: `${c.name} (${c.symbol.toUpperCase()}) Price, Market Cap & Chart`,
+  description:
+    c.price && c.marketCap
+      ? `${c.name} (${c.symbol.toUpperCase()}) is trading at ${c.price}${c.change24h ? ` (${c.change24h} in 24h)` : ''}, with a market cap of ${c.marketCap}${c.rank ? ` (rank #${c.rank})` : ''}. Live price, price history and key facts, with the data source named.`
+      : `${c.name} (${c.symbol.toUpperCase()}) live price, market cap, volume and price history, with the data source named.`,
+});
