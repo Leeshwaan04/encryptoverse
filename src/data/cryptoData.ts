@@ -25,17 +25,6 @@ export interface CryptoToken {
   explorer: string;
 }
 
-export interface MarketNews {
-  id: string;
-  title: string;
-  summary: string;
-  source: string;
-  category: 'Bitcoin' | 'Ethereum' | 'Regulation' | 'Markets' | 'DeFi' | 'AI';
-  timeAgo: string;
-  sentiment: 'Bullish' | 'Neutral' | 'Bearish';
-  url: string;
-}
-
 export interface GlobalStats {
   totalMarketCap: number;
   marketCapChange24h: number;
@@ -634,49 +623,6 @@ export const cryptoTokens: CryptoToken[] = [
     description: 'Arweave is a decentralized storage network that seeks to offer a platform for the indefinite storage of data.',
     website: 'https://arweave.org',
     explorer: 'https://viewblock.io/arweave',
-  },
-];
-
-export const marketNews: MarketNews[] = [
-  {
-    id: 'news-1',
-    title: 'Bitcoin Surges Past $68,000 as Institutional Spot ETF Inflows Accelerate',
-    summary: 'Net daily inflows for US spot Bitcoin ETFs reached $555M, marking one of the strongest institutional demand spikes this quarter.',
-    source: 'CoinDesk',
-    category: 'Bitcoin',
-    timeAgo: '42m ago',
-    sentiment: 'Bullish',
-    url: 'https://www.coindesk.com/markets',
-  },
-  {
-    id: 'news-2',
-    title: 'Solana DEX Volume Flips Ethereum Mainnet Amid Surging Memecoin & DePIN Activity',
-    summary: '24-hour decentralized exchange volume on Solana surpassed $2.4 billion, driven by low fees and fast finality on automated market makers.',
-    source: 'CoinGecko Research',
-    category: 'Markets',
-    timeAgo: '2h ago',
-    sentiment: 'Bullish',
-    url: 'https://www.coingecko.com',
-  },
-  {
-    id: 'news-3',
-    title: 'SEC Concludes Review on Tokenized Real-World Asset (RWA) Guidelines',
-    summary: 'Global financial regulators signal progressive framework for tokenized US Treasuries and private credit on public blockchains.',
-    source: 'CoinDesk Policy',
-    category: 'Regulation',
-    timeAgo: '4h ago',
-    sentiment: 'Neutral',
-    url: 'https://www.coindesk.com/policy',
-  },
-  {
-    id: 'news-4',
-    title: 'Decentralized AI Networks See Record Staking as Compute Demand Outstrips Supply',
-    summary: 'Tokens in the AI and decentralized compute sector experienced double-digit percentage gains over the past 7 days.',
-    source: 'CoinMarketCap News',
-    category: 'AI',
-    timeAgo: '6h ago',
-    sentiment: 'Bullish',
-    url: 'https://coinmarketcap.com',
   },
 ];
 

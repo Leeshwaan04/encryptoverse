@@ -9,9 +9,11 @@ export interface RouteMeta {
   /** Page heading / short title. The document title is "<title> | Encryptoverse" except on the home page. */
   title: string;
   description: string;
+  /** Keep out of search results (personal or error pages). */
+  noindex?: boolean;
 }
 
-export const HOME_TITLE = 'Encryptoverse | Live Crypto Prices, Market Cap & Fear and Greed Index';
+export const HOME_TITLE = 'Encryptoverse | Live Crypto Prices & Fear and Greed Index';
 
 /** The seven app views. `markets` is the home page; the rest live at their own paths. */
 export const TAB_ROUTES: Record<'markets' | 'icodrops' | 'trending' | 'defi' | 'watchlist' | 'news' | 'converter', RouteMeta> = {
@@ -19,13 +21,13 @@ export const TAB_ROUTES: Record<'markets' | 'icodrops' | 'trending' | 'defi' | '
     path: '/',
     title: 'Live Crypto Prices',
     description:
-      'Independent crypto market dashboard: live prices, market cap, volume, price history, Fear & Greed index and news for the top 50 cryptocurrencies, with every data source disclosed.',
+      'Independent crypto dashboard: live prices, market cap, volume, price history, Fear & Greed index and news for the top 50 coins. Every data source disclosed.',
   },
   icodrops: {
     path: '/token-sales',
     title: 'ICOs & Token Sales',
     description:
-      'Where public token sales happen, how notable sales such as Monad, Pump.fun and Plasma were structured, and a checklist for evaluating a sale. Sourced and hand-checked, not a paid listing.',
+      'Where public token sales happen, how Monad, Pump.fun and Plasma structured theirs, and a checklist for judging a sale. Sourced, not a paid listing.',
   },
   trending: {
     path: '/trending',
@@ -36,12 +38,13 @@ export const TAB_ROUTES: Record<'markets' | 'icodrops' | 'trending' | 'defi' | '
     path: '/defi',
     title: 'DeFi: TVL, Stablecoins & New Pools',
     description:
-      'Total value locked by blockchain, stablecoin supply by chain, active governance proposals and newly created DEX pools, from DefiLlama, Snapshot and GeckoTerminal.',
+      'Total value locked by blockchain, stablecoin supply by chain, active governance votes and new DEX pools, from DefiLlama, Snapshot and GeckoTerminal.',
   },
   watchlist: {
     path: '/watchlist',
     title: 'Watchlist & Portfolio',
     description: 'Your personal watchlist and portfolio, stored only in your browser.',
+    noindex: true,
   },
   news: {
     path: '/news',

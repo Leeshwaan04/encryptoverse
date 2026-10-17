@@ -12,7 +12,7 @@ const CURRENCY_SYMBOLS: Record<Currency, string> = {
   ETH: 'Ξ',
 };
 
-export function currencySymbol(currency: string): string {
+function currencySymbol(currency: string): string {
   return CURRENCY_SYMBOLS[currency as Currency] ?? '$';
 }
 
@@ -70,11 +70,6 @@ export function formatSupply(value: number, symbol: string): string {
   return `${value.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${symbol}`;
 }
 
-export function calculateSupplyRatio(circulating: number, max: number | null): number {
-  if (!max || max <= 0 || !Number.isFinite(circulating)) return 0;
-  return Math.min(100, Math.max(0, Math.round((circulating / max) * 100)));
-}
-
 export function changeColor(value: number): string {
   if (!Number.isFinite(value)) return 'text-slate-400';
   return value >= 0 ? 'text-emerald-400' : 'text-rose-400';
@@ -124,7 +119,7 @@ export const isHoldingsRecord = (v: unknown): v is Record<string, number> =>
  * Optional UI sound. Off by default and remembered per browser, because
  * unexpected audio on a finance dashboard is hostile.
  */
-export class CypherAudio {
+class CypherAudio {
   private ctx: AudioContext | null = null;
   public enabled: boolean = readStorage('encryptoverse_sound', false, (v): v is boolean => typeof v === 'boolean');
 

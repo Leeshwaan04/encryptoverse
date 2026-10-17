@@ -111,6 +111,6 @@ npm run build
 Source code is distributed under the **MIT License**. See `LICENSE` for more information.
 
 **Media is not covered by the MIT licence.** Files in `public/media/` have their own terms: the hero video and
-poster are AI-generated artwork, the soundtrack is "Experimental Cinematic Hip Hop" by Rockot under the
+poster are AI-generated artwork, the soundtrack is licensed from Pixabay under the
 [Pixabay Content License](https://pixabay.com/service/license-summary/), and coin logos come from the CC0
 [cryptocurrency-icons](https://github.com/spothq/cryptocurrency-icons) set. Do not reuse these files without checking those terms.

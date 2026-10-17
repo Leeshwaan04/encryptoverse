@@ -1,4 +1,5 @@
 // Server-side lookup of the top-50 coin list, used by the middleware (per-coin titles) and the sitemap.
+import { canonicalUrl } from '../_lib';
 export interface MarketCoin {
   id: string;
   name: string;
@@ -9,14 +10,23 @@ export interface MarketCoin {
   price_change_percentage_24h?: number;
 }
 
-/** Top coins from our own cached /api/markets (USD). Returns null when it cannot be read. */
-export async function topCoins(origin: string): Promise<MarketCoin[] | null> {
+const parseCoins = (body: { data?: MarketCoin[] }): MarketCoin[] | null => {
+  const rows = (body.data ?? []).filter((c) => typeof c.id === 'string' && /^[a-z0-9-]{1,64}$/.test(c.id) && typeof c.name === 'string');
+  return rows.length ? rows : null;
+};
+
+/**
+ * Top coins from our own /api/markets. The edge cache is read first; only when `fetchOnMiss` is set does a cold cache
+ * trigger the upstream providers (pages that cannot be described without the list). Returns null when unavailable.
+ */
+export async function topCoins(origin: string, fetchOnMiss = true): Promise<MarketCoin[] | null> {
   try {
-    const res = await fetch(`${origin}/api/markets?currency=usd`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(6000) });
+    const hit = await (caches as unknown as { default: Cache }).default.match(new Request(canonicalUrl(`${origin}/api/markets?currency=usd`)));
+    if (hit) return parseCoins((await hit.json()) as { data?: MarketCoin[] });
+    if (!fetchOnMiss) return null;
+    const res = await fetch(`${origin}/api/markets?currency=usd`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(4000) });
     if (!res.ok) return null;
-    const body = (await res.json()) as { data?: MarketCoin[] };
-    const rows = (body.data ?? []).filter((c) => typeof c.id === 'string' && /^[a-z0-9-]{1,64}$/.test(c.id) && typeof c.name === 'string');
-    return rows.length ? rows : null;
+    return parseCoins((await res.json()) as { data?: MarketCoin[] });
   } catch {
     return null;
   }

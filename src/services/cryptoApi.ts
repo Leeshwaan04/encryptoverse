@@ -77,7 +77,7 @@ const EXPLORERS: Record<string, string> = {
   hedera: 'https://hashscan.io/mainnet',
 };
 
-export function explorerFor(id: string): string {
+function explorerFor(id: string): string {
   return EXPLORERS[id] ?? `https://www.coingecko.com/en/coins/${encodeURIComponent(id)}`;
 }
 
@@ -139,7 +139,7 @@ const formatDate = (iso: string | null | undefined): string => {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 };
 
-export class RateLimitError extends Error {
+class RateLimitError extends Error {
   constructor() {
     super('CoinGecko rate limit reached. Showing the most recent data available.');
     this.name = 'RateLimitError';

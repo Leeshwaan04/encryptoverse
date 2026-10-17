@@ -39,7 +39,7 @@ async function ctx(viewport, opts = {}, mock = {}) {
   return { c, p };
 }
 const shot = (p, n) => p.screenshot({ path: path.join(OUT, n + '.png'), fullPage: false });
-const tab = (p, label) => p.getByRole('button', { name: new RegExp(label, 'i') }).first();
+const tab = (p, label) => p.getByRole('link', { name: new RegExp(label, 'i') }).first();
 const overflow = (p) => p.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
 const txt = (p) => p.locator('body').innerText();
 // A stuck overlay intercepts pointer events; clear it so later checks still run.
@@ -340,7 +340,6 @@ async function clearOverlay(p) {
     await tab(p, 'Converter').click();
     await p.waitForTimeout(600);
     const t = await txt(p);
-    const m = t.match(/([\d.,]+)\s*$/m);
     const nums = [...t.matchAll(/\b(\d{1,3}(?:\.\d+)?)\b/g)].map((x) => parseFloat(x[1]));
     const plausible = nums.some((n) => n > 5 && n < 200);
     return { pass: plausible, detail: plausible ? 'in range' : 'no plausible BTC/ETH rate found' };
@@ -508,6 +507,7 @@ console.log(`\n${'='.repeat(60)}\nTOTAL ${results.length} | PASS ${results.lengt
 const byArea = {};
 for (const r of results) {
   byArea[r.area] ??= { p: 0, f: 0 };
-  r.pass ? byArea[r.area].p++ : byArea[r.area].f++;
+  if (r.pass) byArea[r.area].p++;
+  else byArea[r.area].f++;
 }
 for (const [a, v] of Object.entries(byArea)) console.log(`  ${a.padEnd(14)} ${v.p}/${v.p + v.f}`);

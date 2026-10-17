@@ -5,7 +5,6 @@ export type MusicState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
 const SRC = '/media/soundtrack.mp3';
 const TARGET_VOLUME = 0.3; // sits under the UI; the visitor's system volume still applies on top
-export const MUSIC_CREDIT = { title: 'Experimental Cinematic Hip Hop', artist: 'Rockot' } as const;
 
 class MusicPlayer {
   private audio: HTMLAudioElement | null = null;
@@ -76,7 +75,7 @@ class MusicPlayer {
 
   private registerMediaSession() {
     if (!('mediaSession' in navigator)) return;
-    navigator.mediaSession.metadata = new MediaMetadata({ title: MUSIC_CREDIT.title, artist: MUSIC_CREDIT.artist, album: 'Encryptoverse' });
+    navigator.mediaSession.metadata = new MediaMetadata({ title: 'Encryptoverse', artist: 'Encryptoverse' });
     navigator.mediaSession.setActionHandler('play', () => void this.play());
     navigator.mediaSession.setActionHandler('pause', () => this.pause());
   }

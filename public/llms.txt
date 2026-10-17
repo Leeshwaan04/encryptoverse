@@ -1,0 +1,19 @@
+# Encryptoverse
+
+> Independent, read-only crypto market dashboard. Live prices, market cap, volume, price history, the Fear & Greed index, DeFi totals and news for the top 50 cryptocurrencies. Every figure names its data source; there are no paid placements and no accounts.
+
+## Pages
+- [Live crypto prices](https://encryptoverse.com/): top-50 coins by market cap
+- [ICOs & token sales](https://encryptoverse.com/token-sales): where public sales happen, documented past sales, due-diligence checklist
+- [Trending](https://encryptoverse.com/trending): 24h gainers, losers and most traded
+- [DeFi](https://encryptoverse.com/defi): TVL by chain, stablecoin supply, governance votes, new DEX pools
+- [News](https://encryptoverse.com/news): headlines linked to the original publishers
+- [Converter](https://encryptoverse.com/converter): crypto and fiat conversion
+
+## Trust
+- [Methodology & data sources](https://encryptoverse.com/methodology): where each number comes from, refresh rates and limitations
+- [About](https://encryptoverse.com/about)
+- [Risk disclosure](https://encryptoverse.com/risk-disclosure)
+- [Sitemap](https://encryptoverse.com/sitemap.xml): includes one page per top-50 coin at /coin/<id>
+
+Information only, not financial advice. Source code: https://github.com/Leeshwaan04/encryptoverse

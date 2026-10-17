@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Layers, Menu, Search, Volume2, VolumeX, Wallet, X } from 'lucide-react';
 import { cypherSound } from '../lib/crypto-utils';
-import { MUSIC_CREDIT, musicPlayer } from '../lib/music';
+import { musicPlayer } from '../lib/music';
 import { useMusicState } from '../lib/useMusic';
 import { NAV_TABS, type TabId } from '../lib/navTabs';
 
@@ -59,6 +59,9 @@ const SearchField: React.FC<{
   </div>
 );
 
+/** Plain left-click navigates inside the app; modified clicks keep the browser's "open in new tab" behaviour. */
+const isPlainClick = (e: React.MouseEvent) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
@@ -105,9 +108,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#07090e]/90 border-b border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => selectTab('markets')}
+        <a
+          href="/"
+          onClick={(e) => {
+            if (!isPlainClick(e)) return;
+            e.preventDefault();
+            selectTab('markets');
+          }}
           aria-label="Encryptoverse home"
           className="flex items-center gap-2.5 group shrink-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
         >
@@ -120,16 +127,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="block font-bold tracking-tight text-[15px] text-white">Encryptoverse</span>
             <span className="hidden 2xl:block text-[11px] text-slate-400 -mt-0.5">Independent crypto market data</span>
           </span>
-        </button>
+        </a>
 
         <nav aria-label="Primary" className="hidden lg:flex items-center gap-0.5 text-sm min-w-0">
-          {NAV_TABS.map(({ id, label, short, icon: Icon, tone }) => {
+          {NAV_TABS.map(({ id, path, label, short, icon: Icon, tone }) => {
             const active = activeTab === id;
             return (
-              <button
+              <a
                 key={id}
-                type="button"
-                onClick={() => selectTab(id)}
+                href={path}
+                onClick={(e) => {
+                  if (!isPlainClick(e)) return;
+                  e.preventDefault();
+                  selectTab(id);
+                }}
                 aria-current={active ? 'page' : undefined}
                 className={`px-3 py-2 rounded-lg transition flex items-center gap-1.5 whitespace-nowrap ${
                   active ? 'text-white bg-slate-800/80 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-900'
@@ -144,7 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {watchlistCount}
                   </span>
                 )}
-              </button>
+              </a>
             );
           })}
         </nav>
@@ -163,7 +174,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => musicPlayer.toggle()}
             aria-label={musicLabel}
             aria-pressed={musicOn}
-            title={`${musicLabel} · ${MUSIC_CREDIT.title} — ${MUSIC_CREDIT.artist}`}
+            title={musicLabel}
             className={`hidden sm:flex lg:hidden xl:flex w-10 h-10 items-center justify-center rounded-lg border transition ${
               musicOn
                 ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20'
@@ -224,13 +235,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           aria-label="Primary"
           className="lg:hidden border-t border-slate-800 bg-[#07090e] px-4 py-3 grid grid-cols-2 gap-2 text-sm max-h-[70dvh] overflow-y-auto"
         >
-          {NAV_TABS.map(({ id, label, icon: Icon, tone }) => {
+          {NAV_TABS.map(({ id, path, label, icon: Icon, tone }) => {
             const active = activeTab === id;
             return (
-              <button
+              <a
                 key={id}
-                type="button"
-                onClick={() => selectTab(id)}
+                href={path}
+                onClick={(e) => {
+                  if (!isPlainClick(e)) return;
+                  e.preventDefault();
+                  selectTab(id);
+                }}
                 aria-current={active ? 'page' : undefined}
                 className={`text-left px-3 py-3 rounded-xl transition flex items-center gap-2.5 border ${
                   active
@@ -245,7 +260,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {watchlistCount}
                   </span>
                 )}
-              </button>
+              </a>
             );
           })}
           <button

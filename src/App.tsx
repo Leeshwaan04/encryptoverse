@@ -75,7 +75,7 @@ function writeUrl(state: ViewState & { tab: TabId }, push: boolean): void {
   else window.history.replaceState(null, '', next);
 }
 
-export function App() {
+function App() {
   const [activeTab, setActiveTab] = useState<TabId>(() => readUrl().tab ?? 'markets');
   const [currency, setCurrency] = useState<Currency>(() => readUrl().currency);
   const [selectedCoinId, setSelectedCoinId] = useState<string | null>(() => readUrl().coin);
@@ -139,18 +139,16 @@ export function App() {
     void fetchFearGreed().then(setFearGreed);
   }, []);
 
-  useEffect(() => {
-    if (!infoPage) writeUrl({ tab: activeTab, coin: selectedCoinId, currency }, false);
-  }, [activeTab, selectedCoinId, currency, infoPage]);
+  // A coin id that is not in the live top-50 list has nothing to show, so the URL falls back to the tab.
+  const knownCoinId = selectedCoinId && (!isLive || tokens.some((t) => t.id === selectedCoinId)) ? selectedCoinId : null;
 
-  // A coin id that is not in the live top-50 list has nothing to show: fall back to the tab instead of an empty URL.
   useEffect(() => {
-    if (selectedCoinId && isLive && !tokens.some((t) => t.id === selectedCoinId)) setSelectedCoinId(null);
-  }, [selectedCoinId, isLive, tokens]);
+    if (!infoPage) writeUrl({ tab: activeTab, coin: knownCoinId, currency }, false);
+  }, [activeTab, knownCoinId, currency, infoPage]);
 
   useEffect(() => {
     if (infoPage) return;
-    const coin = selectedCoinId ? tokens.find((t) => t.id === selectedCoinId) : undefined;
+    const coin = knownCoinId ? tokens.find((t) => t.id === knownCoinId) : undefined;
     applyRouteMeta(
       coin
         ? coinMeta({
@@ -162,7 +160,7 @@ export function App() {
           })
         : TAB_ROUTES[activeTab],
     );
-  }, [activeTab, infoPage, selectedCoinId, tokens, isLive, currency]);
+  }, [activeTab, infoPage, knownCoinId, tokens, isLive, currency]);
 
   useEffect(() => {
     const onPop = () => {

@@ -49,30 +49,6 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Glow and Cypher Grids */
-.cypher-grid {
-  background-image: 
-    linear-gradient(to right, rgba(0, 245, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
-  background-size: 32px 32px;
-}
-
-.cosmic-radial {
-  background: radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.15) 0%, rgba(168, 85, 247, 0.08) 35%, transparent 70%);
-}
-
-.glow-cyan {
-  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.35);
-}
-
-.glow-purple {
-  box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.35);
-}
-
-.glow-emerald {
-  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
-}
-
 /* ---------- Hero ---------- */
 @keyframes hero-rise {
   from { opacity: 0; transform: translateY(18px); filter: blur(6px); }

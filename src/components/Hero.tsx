@@ -125,7 +125,7 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
       {/* Background video (poster shown first, video fades in once playable) */}
       <div ref={videoWrapRef} className="absolute inset-x-0 top-0 h-[68%] lg:inset-y-0 lg:left-[30%] lg:right-0 lg:h-auto -z-20 will-change-transform transition-transform duration-300 ease-out lg:[mask-image:linear-gradient(to_right,transparent_0%,black_32%)] lg:[-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_32%)]" style={{ transform: 'scale(1.03)' }}>
         <img
-          src="/media/hero-galaxy-poster.jpg"
+          src="/media/hero-galaxy-poster.65aac774.jpg"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover object-[66%_center] lg:object-[62%_center]"
@@ -135,7 +135,7 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
           <video
             ref={videoRef}
             className={`absolute inset-0 w-full h-full object-cover object-[66%_center] lg:object-[62%_center] transition-opacity duration-1000 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
-            poster="/media/hero-galaxy-poster.jpg"
+            poster="/media/hero-galaxy-poster.65aac774.jpg"
             autoPlay
             muted
             loop
@@ -145,8 +145,8 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
             tabIndex={-1}
             onCanPlay={() => setVideoReady(true)}
           >
-            <source src="/media/hero-galaxy-720.mp4" type="video/mp4" media="(max-width: 767px)" />
-            <source src="/media/hero-galaxy-1280.mp4" type="video/mp4" />
+            <source src="/media/hero-galaxy-720.f2f53926.mp4" type="video/mp4" media="(max-width: 767px)" />
+            <source src="/media/hero-galaxy-1280.a1c0a057.mp4" type="video/mp4" />
           </video>
         )}
       </div>

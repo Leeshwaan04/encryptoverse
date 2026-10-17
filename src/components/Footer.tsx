@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowUp, ExternalLink, Layers } from 'lucide-react';
 import { DATA_SOURCES, SITE } from '../config/site';
-import type { TabId } from '../lib/navTabs';
+import { tabPath, type TabId } from '../lib/navTabs';
 
 interface FooterProps {
   onNavigate: (to: string) => void;
@@ -70,11 +70,21 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
           <nav aria-label="Markets" className="space-y-3">
             <h2 className="font-bold uppercase tracking-wider text-[11px] text-amber-100">Markets</h2>
             <ul className="space-y-2">
-              <li><a href="/" onClick={tab('markets')} className={linkCls}>Cryptocurrencies</a></li>
-              <li><a href="/" onClick={tab('trending')} className={linkCls}>Gainers &amp; losers</a></li>
-              <li><a href="/" onClick={tab('watchlist')} className={linkCls}>Watchlist</a></li>
-              <li><a href="/" onClick={tab('converter')} className={linkCls}>Converter</a></li>
-              <li><a href="/" onClick={tab('news')} className={linkCls}>News</a></li>
+              {([
+                ['markets', 'Cryptocurrencies'],
+                ['trending', 'Gainers & losers'],
+                ['defi', 'DeFi'],
+                ['icodrops', 'ICOs & token sales'],
+                ['news', 'News'],
+                ['converter', 'Converter'],
+                ['watchlist', 'Watchlist'],
+              ] as const).map(([id, label]) => (
+                <li key={id}>
+                  <a href={tabPath(id)} onClick={tab(id)} className={linkCls}>
+                    {label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </nav>
 

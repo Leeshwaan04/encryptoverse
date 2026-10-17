@@ -10,6 +10,7 @@ export function applyRouteMeta(meta: RouteMeta): void {
   document.title = title;
   const url = `${SITE_URL}${meta.path === '/' ? '/' : meta.path}`;
   setMeta('meta[name="description"]', 'content', meta.description);
+  setMeta('meta[name="robots"]', 'content', meta.noindex ? 'noindex,nofollow' : 'index,follow,max-image-preview:large');
   setMeta('link[rel="canonical"]', 'href', url);
   setMeta('meta[property="og:title"]', 'content', title);
   setMeta('meta[property="og:description"]', 'content', meta.description);
