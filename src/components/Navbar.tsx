@@ -118,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
           <span className="hidden min-[380px]:block lg:hidden xl:block text-left">
             <span className="block font-bold tracking-tight text-[15px] text-white">Encryptoverse</span>
-            <span className="hidden 2xl:block text-[11px] text-slate-400 -mt-0.5">Market intelligence &amp; ICO radar</span>
+            <span className="hidden 2xl:block text-[11px] text-slate-400 -mt-0.5">Independent crypto market data</span>
           </span>
         </button>
 

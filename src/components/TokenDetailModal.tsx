@@ -233,7 +233,7 @@ export const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
             {chart.status === 'error' && (
               <p className="text-center text-slate-400 py-16 px-4">
                 {isLive
-                  ? 'Price history is temporarily unavailable, usually a CoinGecko rate limit. Try again shortly.'
+                  ? 'Price history is temporarily unavailable, usually an upstream rate limit. Try again shortly.'
                   : 'Price history needs the live feed, which is currently unavailable.'}
               </p>
             )}

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { SITE } from '../config/site';
+import { applyRouteMeta } from '../lib/routeMeta';
 import type { InfoPageDef } from './InfoPages';
 
 interface InfoPageProps {
@@ -9,19 +10,7 @@ interface InfoPageProps {
 
 export const InfoPage: React.FC<InfoPageProps> = ({ page, onNavigate }) => {
   useEffect(() => {
-    const prev = document.title;
-    document.title = `${page.title} | ${SITE.name}`;
-    const meta = document.querySelector('meta[name="description"]');
-    const prevDesc = meta?.getAttribute('content') ?? '';
-    meta?.setAttribute('content', page.description);
-    const canonical = document.querySelector('link[rel="canonical"]');
-    const prevCanon = canonical?.getAttribute('href') ?? '';
-    canonical?.setAttribute('href', `${SITE.url}${page.path}`);
-    return () => {
-      document.title = prev;
-      meta?.setAttribute('content', prevDesc);
-      canonical?.setAttribute('href', prevCanon);
-    };
+    applyRouteMeta(page);
   }, [page]);
 
   return (

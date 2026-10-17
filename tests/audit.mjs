@@ -248,17 +248,34 @@ async function clearOverlay(p) {
     const t = await txt(p);
     return { pass: !t.includes('6,420.50'), detail: t.includes('6,420.50') ? 'fake $6,420.50 balance present' : 'clean' };
   });
-  await check('Honesty', 'Active ICOs have not already ended', async () => {
+  await check('Honesty', 'Token sales page is sourced, dated and has no fake listings', async () => {
     await tab(p, 'ICO').click();
     await p.waitForTimeout(600);
     await shot(p, 'desktop-ico');
-    const ends = await p.locator('text=/Ends: /').allInnerTexts();
-    const past = ends.filter((e) => new Date(e.replace('Ends: ', '')) < new Date());
-    return { pass: past.length === 0, detail: `${past.length}/${ends.length} expired: ${past.join(' | ')}` };
+    const t = await txt(p);
+    const sourced = (await p.locator('main a[href^="https://"][target=_blank]').count()) >= 8;
+    const dated = /checked against the sources shown on/i.test(t);
+    const fake = t.includes('Encryptoverse Network');
+    return { pass: sourced && dated && !fake, detail: `sourcedLinks=${sourced} dated=${dated} fake=${fake}` };
   });
-  await check('Honesty', 'Sample data is labelled as sample', async () => {
-    const t = (await txt(p)).toLowerCase();
-    return { pass: t.includes('sample') || t.includes('illustrative'), detail: 'ICO page should say listings are not live' };
+  await check('Routing', 'Each tab has its own URL, title and canonical', async () => {
+    const out = [];
+    for (const [label, path] of [['ICO', '/token-sales'], ['Trending', '/trending'], ['DeFi', '/defi'], ['News', '/news'], ['Convert', '/converter']]) {
+      await tab(p, label).click();
+      await p.waitForTimeout(500);
+      const u = new URL(p.url()).pathname;
+      const canon = await p.locator('link[rel=canonical]').getAttribute('href');
+      const ok = u === path && canon === 'https://encryptoverse.com' + path && (await p.title()).includes('Encryptoverse');
+      if (!ok) out.push(`${label}: path=${u} canonical=${canon}`);
+    }
+    return { pass: out.length === 0, detail: out.join(' | ') || 'all 5 tabs routed' };
+  });
+  await check('Routing', 'Old ?tab= links redirect to the new path', async () => {
+    await p.goto(BASE + '?tab=defi', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(500);
+    const res = { pass: new URL(p.url()).pathname === '/defi' && !p.url().includes('tab='), detail: p.url() };
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return res;
   });
   await check('Security', 'No links to unregistered domains', async () => {
     const hrefs = await p.locator('a').evaluateAll((a) => a.map((x) => x.href));

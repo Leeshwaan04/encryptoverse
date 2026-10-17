@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { GlobalMarketHeader } from './components/GlobalMarketHeader';
 import { Navbar } from './components/Navbar';
-import { NAV_TABS, type TabId } from './lib/navTabs';
+import { NAV_TABS, tabPath, type TabId } from './lib/navTabs';
+import { TAB_ROUTES } from './config/seo';
+import { applyRouteMeta } from './lib/routeMeta';
 import { MarketHighlights } from './components/MarketHighlights';
 import { CryptoTable } from './components/CryptoTable';
 import { TokenDetailModal } from './components/TokenDetailModal';
-import { IcoDropsRadar } from './components/IcoDropsRadar';
+import { TokenSalesGuide } from './components/TokenSalesGuide';
 import { TrendingMoversView } from './components/TrendingMoversView';
 import { CoinDeskNews } from './components/CoinDeskNews';
 import { DefiView } from './components/DefiView';
@@ -41,13 +43,17 @@ interface ViewState {
   currency: Currency;
 }
 
-/** View state lives in the URL so reload, Back/Forward and sharing all work. */
+/** View state lives in the URL so reload, Back/Forward and sharing all work: the tab is the path, the rest is the query. */
 function readUrl(): ViewState {
   const p = new URLSearchParams(window.location.search);
-  const tab = p.get('tab');
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
+  // Old links used `/?tab=defi`; they still resolve and are rewritten to `/defi`.
+  const legacy = p.get('tab');
+  const legacyTab = NAV_TABS.find((t) => t.id === legacy)?.id;
+  const tab = (pathname === '/' && legacyTab) || NAV_TABS.find((t) => t.path === pathname)?.id || 'markets';
   const cur = p.get('cur')?.toUpperCase();
   return {
-    tab: (NAV_TABS.some((t) => t.id === tab) ? tab : 'markets') as TabId,
+    tab,
     coin: p.get('coin'),
     currency: (CURRENCIES.includes(cur as Currency) ? cur : 'USD') as Currency,
   };
@@ -55,11 +61,10 @@ function readUrl(): ViewState {
 
 function writeUrl(state: ViewState, push: boolean): void {
   const p = new URLSearchParams();
-  if (state.tab !== 'markets') p.set('tab', state.tab);
   if (state.coin) p.set('coin', state.coin);
   if (state.currency !== 'USD') p.set('cur', state.currency);
   const qs = p.toString();
-  const next = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+  const next = `${tabPath(state.tab)}${qs ? `?${qs}` : ''}`;
   if (next === `${window.location.pathname}${window.location.search}`) return;
   if (push) window.history.pushState(null, '', next);
   else window.history.replaceState(null, '', next);
@@ -134,6 +139,10 @@ export function App() {
   }, [activeTab, selectedCoinId, currency, infoPage]);
 
   useEffect(() => {
+    if (!infoPage) applyRouteMeta(TAB_ROUTES[activeTab]);
+  }, [activeTab, infoPage]);
+
+  useEffect(() => {
     const onPop = () => {
       setPath(window.location.pathname);
       const s = readUrl();
@@ -156,9 +165,8 @@ export function App() {
   const selectTab = (tab: TabId) => {
     if (infoPage) {
       // Leaving an info page: go back to the app on the chosen tab.
-      writeUrl({ tab, coin: null, currency }, true);
-      window.history.pushState(null, '', tab === 'markets' ? '/' : `/?tab=${tab}`);
-      setPath('/');
+      window.history.pushState(null, '', tabPath(tab));
+      setPath(tabPath(tab));
       setActiveTab(tab);
       setSelectedCoinId(null);
       window.scrollTo({ top: 0 });
@@ -273,7 +281,7 @@ export function App() {
                 </h2>
                 <p className="text-sm text-slate-400 mt-1">
                   {isLive
-                    ? `Top 50 coins in ${currency}, from CoinGecko. Refreshes every 2 minutes.`
+                    ? `Top 50 coins in ${currency}, from ${dataSource}. Refreshes every 2 minutes.`
                     : 'Live prices are unavailable, so these are bundled sample figures and may be out of date.'}
                 </p>
               </div>
@@ -292,7 +300,7 @@ export function App() {
           </div>
         )}
 
-        {!infoPage && activeTab === 'icodrops' && <IcoDropsRadar />}
+        {!infoPage && activeTab === 'icodrops' && <TokenSalesGuide />}
 
         {!infoPage && activeTab === 'trending' && (
           <TrendingMoversView tokens={tokens} currency={currency} onSelectToken={openToken} />

@@ -1,5 +1,4 @@
-// Encryptoverse Crypto Market Data & ICO Database
-// Synthesized blend of CoinMarketCap, CoinGecko, CoinDesk Price, and ICO Drops
+// Bundled fallback snapshot, shown only (and labelled as such) when the live feed is unavailable.
 
 export interface CryptoToken {
   id: string;
@@ -24,29 +23,6 @@ export interface CryptoToken {
   description: string;
   website: string;
   explorer: string;
-}
-
-export interface IcoProject {
-  id: string;
-  name: string;
-  symbol: string;
-  icon: string;
-  status: 'active' | 'upcoming' | 'ended';
-  category: string;
-  platform: 'Ethereum' | 'Solana' | 'BNB Chain' | 'Base' | 'Arbitrum' | 'Sui' | 'TON';
-  stage: string;
-  tokenPrice: number;
-  targetRaise: number;
-  raisedAmount: number;
-  interestHype: 'Very High' | 'High' | 'Medium';
-  whitelist: boolean;
-  kyc: boolean;
-  /** Offset in days from today; keeps sample timelines plausible instead of expiring. */
-  startsInDays: number;
-  endsInDays: number;
-  roiUsd?: string;
-  roiEth?: string;
-  description: string;
 }
 
 export interface MarketNews {
@@ -658,146 +634,6 @@ export const cryptoTokens: CryptoToken[] = [
     description: 'Arweave is a decentralized storage network that seeks to offer a platform for the indefinite storage of data.',
     website: 'https://arweave.org',
     explorer: 'https://viewblock.io/arweave',
-  },
-];
-
-export const icoProjects: IcoProject[] = [
-  {
-    id: 'encryptoverse-network',
-    name: 'Encryptoverse Network',
-    symbol: 'ECV',
-    icon: 'https://assets.coingecko.com/coins/images/1/standard/bitcoin.png',
-    status: 'active',
-    category: 'DePIN / Infrastructure',
-    platform: 'Ethereum',
-    stage: 'Stage 2 Public Sale',
-    tokenPrice: 0.035,
-    targetRaise: 2500000,
-    raisedAmount: 1684500,
-    interestHype: 'Very High',
-    whitelist: false,
-    kyc: true,
-    startsInDays: -21,
-    endsInDays: 25,
-    description: 'Next-generation decentralized market intelligence, confidential compute, and verified launchpad network.',
-  },
-  {
-    id: 'nexus-ai',
-    name: 'Nexus AI Protocol',
-    symbol: 'NAI',
-    icon: 'https://assets.coingecko.com/coins/images/29856/standard/tao.png',
-    status: 'active',
-    category: 'AI & Machine Learning',
-    platform: 'Solana',
-    stage: 'Community Round',
-    tokenPrice: 0.12,
-    targetRaise: 1800000,
-    raisedAmount: 1420000,
-    interestHype: 'Very High',
-    whitelist: true,
-    kyc: true,
-    startsInDays: -13,
-    endsInDays: 9,
-    description: 'Decentralized autonomous AI agent orchestration and inference verification network on Solana.',
-  },
-  {
-    id: 'aerodex-perp',
-    name: 'AeroDEX Perpetual',
-    symbol: 'AEROX',
-    icon: 'https://assets.coingecko.com/coins/images/279/standard/ethereum.png',
-    status: 'active',
-    category: 'DeFi / Perps',
-    platform: 'Base',
-    stage: 'Public IDO',
-    tokenPrice: 0.085,
-    targetRaise: 950000,
-    raisedAmount: 680000,
-    interestHype: 'High',
-    whitelist: false,
-    kyc: false,
-    startsInDays: -11,
-    endsInDays: 12,
-    description: 'Zero-slippage cross-margin perpetual exchange natively built on Base with deep liquidity pools.',
-  },
-  {
-    id: 'hyperion-chain',
-    name: 'Hyperion Modular L2',
-    symbol: 'HYP',
-    icon: 'https://assets.coingecko.com/coins/images/16547/standard/arbitrum_logo.png',
-    status: 'upcoming',
-    category: 'Layer 2 / Modular',
-    platform: 'Ethereum',
-    stage: 'Whitelisted Presale',
-    tokenPrice: 0.25,
-    targetRaise: 4000000,
-    raisedAmount: 0,
-    interestHype: 'Very High',
-    whitelist: true,
-    kyc: true,
-    startsInDays: 16,
-    endsInDays: 35,
-    description: 'High-throughput parallelized EVM execution Layer 2 featuring Celestia DA integration.',
-  },
-  {
-    id: 'solarpunk-depin',
-    name: 'SolarPunk Energy Grid',
-    symbol: 'SPK',
-    icon: 'https://assets.coingecko.com/coins/images/4284/standard/Helium_HNT.png',
-    status: 'upcoming',
-    category: 'DePIN / CleanTech',
-    platform: 'Solana',
-    stage: 'Seed IDO',
-    tokenPrice: 0.045,
-    targetRaise: 1200000,
-    raisedAmount: 0,
-    interestHype: 'High',
-    whitelist: true,
-    kyc: false,
-    startsInDays: 27,
-    endsInDays: 47,
-    description: 'Decentralized green energy metering and microgrid incentive layer powered by Solana micropayments.',
-  },
-  {
-    id: 'sui-forge-gaming',
-    name: 'SuiForge Studio',
-    symbol: 'FORGE',
-    icon: 'https://assets.coingecko.com/coins/images/26375/standard/sui-ocean-square.png',
-    status: 'ended',
-    category: 'Gaming / Metaverse',
-    platform: 'Sui',
-    stage: 'Public Sale',
-    tokenPrice: 0.05,
-    targetRaise: 1500000,
-    raisedAmount: 1500000,
-    interestHype: 'Very High',
-    whitelist: true,
-    kyc: true,
-    startsInDays: -62,
-    endsInDays: -41,
-    roiUsd: '4.8x',
-    roiEth: '3.6x',
-    description: 'Web3 AAA game publishing ecosystem and asset interoperability SDK for Sui Network.',
-  },
-  {
-    id: 'omni-zk-rollup',
-    name: 'OmniZK Bridge',
-    symbol: 'OZK',
-    icon: 'https://assets.coingecko.com/coins/images/877/standard/chainlink-new-logo.png',
-    status: 'ended',
-    category: 'Cross-Chain / Interoperability',
-    platform: 'Ethereum',
-    stage: 'Public IDO',
-    tokenPrice: 0.15,
-    targetRaise: 3000000,
-    raisedAmount: 3000000,
-    interestHype: 'Very High',
-    whitelist: true,
-    kyc: true,
-    startsInDays: -98,
-    endsInDays: -78,
-    roiUsd: '8.2x',
-    roiEth: '6.4x',
-    description: 'Zero-knowledge cross-chain liquidity and message routing between all EVM and non-EVM chains.',
   },
 ];
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { SITE, DATA_SOURCES } from '../config/site';
+import { INFO_ROUTES } from '../config/seo';
 import { A, H2, P, UL } from './prose';
 
 export interface InfoPageDef {
@@ -21,9 +22,7 @@ const contactLine = SITE.contactEmail ? (
 
 export const INFO_PAGES: InfoPageDef[] = [
   {
-    path: '/about',
-    title: 'About Encryptoverse',
-    description: 'What Encryptoverse is, what it is not, where its data comes from and how it is maintained.',
+    ...INFO_ROUTES['/about'],
     body: (
       <>
         <P>
@@ -63,9 +62,7 @@ export const INFO_PAGES: InfoPageDef[] = [
     ),
   },
   {
-    path: '/methodology',
-    title: 'Methodology & Data Sources',
-    description: 'Exactly where every number on Encryptoverse comes from, how often it refreshes, and its known limitations.',
+    ...INFO_ROUTES['/methodology'],
     body: (
       <>
         <P>This page documents how each figure on the site is produced so you can judge how far to rely on it.</P>
@@ -131,9 +128,7 @@ export const INFO_PAGES: InfoPageDef[] = [
     ),
   },
   {
-    path: '/risk-disclosure',
-    title: 'Risk Disclosure',
-    description: 'Cryptoassets are volatile and can lose all of their value. Read this before acting on any information.',
+    ...INFO_ROUTES['/risk-disclosure'],
     body: (
       <>
         <P><strong>Nothing on Encryptoverse is financial, investment, tax or legal advice.</strong> It is general information only.</P>
@@ -150,9 +145,7 @@ export const INFO_PAGES: InfoPageDef[] = [
     ),
   },
   {
-    path: '/privacy',
-    title: 'Privacy Policy',
-    description: 'What data Encryptoverse collects, what stays in your browser, and which third parties are involved.',
+    ...INFO_ROUTES['/privacy'],
     body: (
       <>
         <P>Last updated {SITE.lastUpdated}. This describes how the site actually behaves today.</P>
@@ -178,9 +171,7 @@ export const INFO_PAGES: InfoPageDef[] = [
     ),
   },
   {
-    path: '/terms',
-    title: 'Terms of Use',
-    description: 'The terms that apply when you use Encryptoverse.',
+    ...INFO_ROUTES['/terms'],
     body: (
       <>
         <P>Last updated {SITE.lastUpdated}. By using Encryptoverse you agree to these terms.</P>
@@ -203,9 +194,7 @@ export const INFO_PAGES: InfoPageDef[] = [
     ),
   },
   {
-    path: '/contact',
-    title: 'Contact',
-    description: 'How to reach Encryptoverse to report errors, ask questions or request corrections.',
+    ...INFO_ROUTES['/contact'],
     body: (
       <>
         <P>We welcome corrections and feedback.</P>

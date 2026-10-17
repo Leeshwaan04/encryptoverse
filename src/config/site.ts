@@ -8,7 +8,7 @@ export const SITE = {
   operator: '',
   /** Public contact address, e.g. "hello@encryptoverse.com". */
   contactEmail: '',
-  lastUpdated: 'October 16, 2026',
+  lastUpdated: 'October 17, 2026',
 } as const;
 
 export interface DataSource {
