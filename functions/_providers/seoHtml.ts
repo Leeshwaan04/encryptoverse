@@ -1,6 +1,6 @@
 // HTML the middleware injects for crawlers and link-preview bots that do not run JavaScript.
 // React replaces #root on load (createRoot), so visitors never see this; it mirrors what the app renders.
-import { SITE_NAME, SITE_URL, TAB_ROUTES, INFO_ROUTES, coinPath, type RouteMeta } from '../../src/config/seo';
+import { SITE_NAME, SITE_URL, TAB_ROUTES, INFO_ROUTES, coinPath, type RouteMeta } from '../../src/config/seo.ts';
 import type { MarketCoin } from './coinMeta';
 
 export const esc = (s: string): string =>

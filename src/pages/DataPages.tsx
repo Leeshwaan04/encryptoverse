@@ -16,7 +16,7 @@ type Nav = (to: string) => void;
 // ------------------------------------------------------------------------------------------------ primitives
 const plain = (e: React.MouseEvent) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
-const L: React.FC<{ to: string; nav: Nav; className?: string; children: React.ReactNode }> = ({ to, nav, className = 'text-cyan-300 hover:text-cyan-200 underline-offset-2 hover:underline', children }) => (
+const L: React.FC<{ to: string; nav: Nav; className?: string; children: React.ReactNode }> = ({ to, nav, className = 'text-cyan-300 hover:text-cyan-200 underline decoration-cyan-300/50 underline-offset-2 hover:decoration-cyan-200', children }) => (
   <a
     href={to}
     onClick={(e) => {
@@ -85,7 +85,7 @@ const Pager: React.FC<{ nav: Nav; page: number; pages: number; make: (p: number)
 );
 
 const Table: React.FC<{ head: string[]; children: React.ReactNode; caption: string }> = ({ head, children, caption }) => (
-  <div className="overflow-x-auto rounded-xl border border-slate-800">
+  <div className="overflow-x-auto rounded-xl border border-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400" tabIndex={0} role="region" aria-label={caption}>
     <table className="w-full text-sm">
       <caption className="sr-only">{caption}</caption>
       <thead className="bg-slate-900/70 text-left text-xs uppercase tracking-wider text-slate-400">
@@ -162,7 +162,7 @@ const CoinView: React.FC<{ p: Extract<LoadedPage, { kind: 'coin' }>; nav: Nav; m
         <Stat label="Price (USD)" value={usd(v.p)} sub={<Change v={v.h24} />} />
         <Stat label="Market cap" value={usd(v.m, true)} sub={`Rank #${c.r}`} />
         <Stat label="24h volume" value={usd(v.v, true)} />
-        <Stat label="1h / 7d change" value={<><Change v={v.h1} /> <span className="text-slate-500">/</span> <Change v={v.d7} /></>} />
+        <Stat label="1h / 7d change" value={<><Change v={v.h1} /> <span className="text-slate-400">/</span> <Change v={v.d7} /></>} />
         <Stat label="Circulating supply" value={`${qty(v.c)} ${sym}`} />
         <Stat label="Total supply" value={v.t ? `${qty(v.t)} ${sym}` : 'n/a'} />
         <Stat label="Max supply" value={v.x ? `${qty(v.x)} ${sym}` : 'n/a'} />
@@ -228,7 +228,7 @@ const CoinListView: React.FC<{ p: Extract<LoadedPage, { kind: 'coinList' }>; nav
       <Table head={['Coin', 'Price', '24h', 'Market cap']} caption={info.heading}>
         {p.rows.map(([s, n, y, r, price, h24, m]) => (
           <tr key={s}>
-            <Td left><span className="text-slate-500 mr-2">{r}</span><L to={`/coin/${s}`} nav={nav}>{n}</L> <span className="text-slate-400">{y.toUpperCase()}</span></Td>
+            <Td left><span className="text-slate-400 mr-2">{r}</span><L to={`/coin/${s}`} nav={nav}>{n}</L> <span className="text-slate-400">{y.toUpperCase()}</span></Td>
             <Td>{usd(price)}</Td>
             <Td><Change v={h24} /></Td>
             <Td>{usd(m, true)}</Td>
@@ -253,7 +253,7 @@ const ProtocolListView: React.FC<{ p: Extract<LoadedPage, { kind: 'protocolList'
       <Table head={['Protocol', 'Category', 'TVL', '24h']} caption={info.heading}>
         {p.rows.map(([s, n, k, t, c1d], i) => (
           <tr key={s}>
-            <Td left><span className="text-slate-500 mr-2">{(p.page - 1) * LIST_PER_PAGE + i + 1}</span><L to={`/defi/protocol/${s}`} nav={nav}>{n}</L></Td>
+            <Td left><span className="text-slate-400 mr-2">{(p.page - 1) * LIST_PER_PAGE + i + 1}</span><L to={`/defi/protocol/${s}`} nav={nav}>{n}</L></Td>
             <Td>{k ?? 'n/a'}</Td>
             <Td>{usd(t, true)}</Td>
             <Td><Change v={c1d} /></Td>
@@ -655,7 +655,7 @@ export const DataPage: React.FC<{ route: PageRoute; nav: Nav }> = ({ route, nav 
         <SimpleList nav={nav} info={chainListInfo()} trail={[['/defi', 'DeFi']]} current="Chains" manifest={manifest} source="DefiLlama"
           intro={`${page.rows.length} blockchains tracked by DefiLlama, ranked by DeFi total value locked.`} head={['Chain', 'TVL', 'Protocols']}
           rows={page.rows.map(([s, n, t, pc], i) => (
-            <tr key={s}><Td left><span className="text-slate-500 mr-2">{i + 1}</span><L to={`/defi/chain/${s}`} nav={nav}>{n}</L></Td><Td>{usd(t, true)}</Td><Td>{pc}</Td></tr>
+            <tr key={s}><Td left><span className="text-slate-400 mr-2">{i + 1}</span><L to={`/defi/chain/${s}`} nav={nav}>{n}</L></Td><Td>{usd(t, true)}</Td><Td>{pc}</Td></tr>
           ))} />
       );
     case 'stableList':
@@ -663,7 +663,7 @@ export const DataPage: React.FC<{ route: PageRoute; nav: Nav }> = ({ route, nav 
         <SimpleList nav={nav} info={stableListInfo()} trail={[['/defi', 'DeFi']]} current="Stablecoins" manifest={manifest} source="DefiLlama"
           intro={`${page.rows.length} stablecoins tracked by DefiLlama, ranked by circulating supply.`} head={['Stablecoin', 'Circulating']}
           rows={page.rows.map(([s, n, y, cs], i) => (
-            <tr key={s}><Td left><span className="text-slate-500 mr-2">{i + 1}</span><L to={`/stablecoins/${s}`} nav={nav}>{n}</L> <span className="text-slate-400">{y.toUpperCase()}</span></Td><Td>{usd(cs, true)}</Td></tr>
+            <tr key={s}><Td left><span className="text-slate-400 mr-2">{i + 1}</span><L to={`/stablecoins/${s}`} nav={nav}>{n}</L> <span className="text-slate-400">{y.toUpperCase()}</span></Td><Td>{usd(cs, true)}</Td></tr>
           ))} />
       );
     case 'exchangeList':
@@ -671,7 +671,7 @@ export const DataPage: React.FC<{ route: PageRoute; nav: Nav }> = ({ route, nav 
         <SimpleList nav={nav} info={exchangeListInfo()} trail={[]} current="Exchanges" manifest={manifest} source="CoinLore"
           intro={`${page.rows.length} exchanges ranked by reported 24-hour volume. Volumes are self-reported and unaudited.`} head={['Exchange', '24h volume', 'Pairs']}
           rows={page.rows.map((e, i) => (
-            <tr key={e.s}><Td left><span className="text-slate-500 mr-2">{i + 1}</span><L to={`/exchange/${e.s}`} nav={nav}>{e.n}</L></Td><Td>{usd(e.v, true)}</Td><Td>{e.ap ?? 'n/a'}</Td></tr>
+            <tr key={e.s}><Td left><span className="text-slate-400 mr-2">{i + 1}</span><L to={`/exchange/${e.s}`} nav={nav}>{e.n}</L></Td><Td>{usd(e.v, true)}</Td><Td>{e.ap ?? 'n/a'}</Td></tr>
           ))} />
       );
   }

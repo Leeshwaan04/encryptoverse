@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(curl -s -D - -o /dev/null \"https://encryptoverse.com/api/coin?slug=initia\")",
+      "Bash(curl -s \"https://encryptoverse.com/api/chart?id=bitcoin&symbol=BTC&days=7&currency=usd\")",
+      "Bash(swiftc -o pdftxt pdf.swift)",
+      "Bash(./pdftxt)",
+      "Bash(node run1.mjs mobile)",
+      "Bash(/Users/sumitbagewadi/Documents/encryptoverse/node_modules/.bin/rolldown entry.ts --platform node --format esm -o bundle.mjs)",
+      "Bash(curl -s 'https://api.frankfurter.dev/v1/latest?base=USD')",
+      "WebFetch(domain:www.theblock.co)",
+      "Bash(node pw.mjs https://encryptoverse.com/coin/tharwa https://encryptoverse.com/coins/2 https://encryptoverse.com/defi/protocol/macaron-stableswap)",
+      "WebFetch(domain:thedefiant.io)",
+      "WebFetch(domain:help.coinbase.com)",
+      "Bash(cat)",
+      "Bash(node t3.mjs)",
+      "Bash(curl -s -m 30 \"https://web.archive.org/cdx/search/cdx?url=encryptoverse.com/*&output=json&limit=40&fl=timestamp,original,statuscode,mimetype&collapse=urlkey\")",
+      "Bash(curl -s -m 20 \"https://archive.org/wayback/available?url=encryptoverse.com&timestamp=20250601\")",
+      "Bash(node pw.mjs https://encryptoverse.com/coin/tharwa)",
+      "Bash(python3 -c \"import sys,json;d=json.loads\\(sys.stdin.read\\(\\).split\\('\\\\n'\\)[0]\\);print\\(d['cls']\\);[print\\(x\\) for x in d['shifts']]\")",
+      "Bash(node flowA.mjs mobile)",
+      "Bash(sed -e \"s/sizes.desktop/sizes.mobile/\" -e \"s/waitForTimeout\\(1500\\);\\\\n console.log\\(JSON/X/\" scroll.mjs)",
+      "Bash(sed -i '' 's/if \\(performance.now\\(\\) - t0 > 1200\\)/if \\(performance.now\\(\\) - t0 > 3500\\)/; s/\\\\[round of/[round of/' scroll_m.mjs)",
+      "Bash(sed -i '' \"s/await page.waitForTimeout\\(1500\\);\\\\$/await page.waitForTimeout\\(3800\\);/\" scroll_m.mjs)",
+      "Bash(node scroll_m.mjs)",
+      "Bash(timeout 110 node flowD.mjs)",
+      "Bash(node flowD.mjs)"
+    ]
+  }
+}
