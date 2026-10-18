@@ -110,14 +110,15 @@ async function buildCoins(manifest) {
   await mkdir(SITEMAPS, { recursive: true });
   await writeFile(new URL('coins.xml', SITEMAPS), xmlUrls([...good.map((c) => `/coin/${c.s}`)]));
   // Converter pages: top coins against every fiat currency, and the very top coins against each other.
-  const convCoins = good.slice(0, Math.max(CONVERT_FIAT_COINS, CONVERT_PAIR_COINS));
+  const convCoins = good.filter((c) => !c.s.includes('-to-')).slice(0, Math.max(CONVERT_FIAT_COINS, CONVERT_PAIR_COINS));
   await writeFile(new URL('convert-coins.json', OUT), JSON.stringify(convCoins.map((c) => [c.s, c.n, c.y])));
   const fiatPaths = convCoins.slice(0, CONVERT_FIAT_COINS).flatMap((c) => Object.keys(FIAT).map((f) => `/convert/${c.s}-to-${f}`));
   const pairCoins = convCoins.slice(0, CONVERT_PAIR_COINS);
   const pairPaths = pairCoins.flatMap((a) => pairCoins.filter((b) => b.s !== a.s).map((b) => `/convert/${a.s}-to-${b.s}`));
   await writeFile(new URL('convert-fiat.xml', SITEMAPS), xmlUrls(fiatPaths));
   await writeFile(new URL('convert-pairs.xml', SITEMAPS), xmlUrls(pairPaths));
-  manifest.convert = { fiatPages: fiatPaths.length, pairPages: pairPaths.length };
+  manifest.convert = { fiatPages: fiatPaths.length, pairPages: pairPaths.length, coinHubs: convCoins.slice(0, CONVERT_FIAT_COINS).length };
+  manifest._convertHubs = convCoins.slice(0, CONVERT_FIAT_COINS).map((c) => `/convert/${c.s}`);
   manifest.coins = { total: coins.length, indexable: good.length, listPages, buckets: nb, perPage: PER };
   console.log(`coins: ${coins.length} records, ${good.length} substantive, ${listPages} list pages, ${nb} buckets`);
 }
@@ -251,7 +252,8 @@ async function buildStablesAndExchanges(manifest) {
   const exRecs = Object.values(ex)
     .filter((e) => e && e.name_id && /^[a-z0-9-]{1,60}$/.test(e.name_id))
     .map((e) => ({ s: e.name_id, n: trimText(e.name, 80), v: num(e.volume_usd), ap: num(e.active_pairs), u: typeof e.url === 'string' && e.url.startsWith('https://') ? e.url.slice(0, 200) : null, co: trimText(e.country, 40) || null }))
-    .sort((a, b) => (b.v ?? -1) - (a.v ?? -1));
+    .sort((a, b) => (b.v ?? -1) - (a.v ?? -1))
+    .map((e, i) => ({ ...e, r: i + 1 }));
   await writeFile(new URL('exchanges.json', OUT), JSON.stringify(exRecs));
   const goodE = exRecs.filter(exchangeIsSubstantive);
 
@@ -274,10 +276,11 @@ if (!only || only === 'stables') await buildStablesAndExchanges(manifest);
 if (!only || only === 'coins' || only === 'defi') {
   const hubs = ['/coins', ...Array.from({ length: Math.max(0, (manifest.coins?.listPages ?? 1) - 1) }, (_, i) => `/coins/${i + 2}`)];
   if (manifest.protocols) hubs.push('/defi/protocols', ...Array.from({ length: Math.max(0, manifest.protocols.listPages - 1) }, (_, i) => `/defi/protocols/${i + 2}`), '/defi/chains');
-  hubs.push('/stablecoins', '/exchanges', '/convert');
+  hubs.push('/stablecoins', '/exchanges', '/convert', ...(manifest._convertHubs ?? []));
   await mkdir(SITEMAPS, { recursive: true });
   await writeFile(new URL('hubs.xml', SITEMAPS), xmlUrls(hubs));
   manifest.hubs = hubs.length;
 }
+delete manifest._convertHubs;
 await writeFile(new URL('manifest.json', OUT), JSON.stringify(manifest));
 console.log('done', JSON.stringify(manifest));

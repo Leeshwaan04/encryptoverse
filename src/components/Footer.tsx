@@ -111,6 +111,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
             <ul className="space-y-2">
               <li><a href="/about" onClick={go('/about')} className={linkCls}>About us</a></li>
               <li><a href="/methodology" onClick={go('/methodology')} className={linkCls}>Methodology</a></li>
+              <li><a href="/editorial-policy" onClick={go('/editorial-policy')} className={linkCls}>Editorial policy</a></li>
               <li><a href="/contact" onClick={go('/contact')} className={linkCls}>Contact &amp; corrections</a></li>
             </ul>
           </nav>

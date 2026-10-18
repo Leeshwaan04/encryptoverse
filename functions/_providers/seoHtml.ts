@@ -23,12 +23,12 @@ export function fallbackHtml(meta: RouteMeta, opts: { coins?: MarketCoin[] | nul
     `<main id="seo-fallback"><h1>${esc(opts.heading ?? (meta.path === '/' ? 'Encryptoverse: the crypto market in one clear view' : meta.title))}</h1>` +
     `<p>${esc(meta.description)}</p>${facts}${coins}${related}` +
     `<nav aria-label="Site pages"><ul>${NAV}</ul></nav>` +
-    `<p>Prices are informational only and not financial advice. Data sources are listed on the methodology page.</p></main>`
+    `<p>Generated automatically from named public data sources and not individually reviewed. Informational only, not financial advice. See the <a href="/methodology" class="text-cyan-300">methodology</a>, the <a href="/editorial-policy" class="text-cyan-300">editorial and corrections policy</a> and the <a href="/risk-disclosure" class="text-cyan-300">risk disclosure</a>.</p></main>`
   );
 }
 
 /** JSON-LD (a data block, never executed). `<` is escaped so a value can never close the script tag. */
-export function jsonLd(meta: RouteMeta, title: string): string {
+export function jsonLd(meta: RouteMeta, title: string, dateModified?: string): string {
   const url = `${SITE_URL}${meta.path}`;
   const graph =
     meta.path === '/'
@@ -44,6 +44,14 @@ export function jsonLd(meta: RouteMeta, title: string): string {
           },
         ]
       : [
+          {
+            '@type': 'WebPage',
+            '@id': url,
+            url,
+            name: title,
+            isPartOf: { '@id': `${SITE_URL}/#website` },
+            ...(dateModified ? { dateModified } : {}),
+          },
           {
             '@type': 'BreadcrumbList',
             itemListElement: [

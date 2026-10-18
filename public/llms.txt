@@ -19,6 +19,7 @@
 ## Trust
 - [Methodology & data sources](https://encryptoverse.com/methodology): where each number comes from, refresh rates and limitations
 - [About](https://encryptoverse.com/about)
+- [Editorial & corrections policy](https://encryptoverse.com/editorial-policy): how pages are produced and corrected
 - [Risk disclosure](https://encryptoverse.com/risk-disclosure)
 - [Sitemap](https://encryptoverse.com/sitemap.xml): includes one page per top-50 coin at /coin/<id>
 

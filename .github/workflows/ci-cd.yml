@@ -51,6 +51,11 @@ jobs:
           done
           [ "$ok" = 1 ]
 
+      # Checks every generated page (about 42,000): titles, descriptions, thin content, indexing rules, broken
+      # internal links, orphans and click depth. Fails the pipeline on any hard problem.
+      - name: Audit every page
+        run: npm run audit:pages
+
       - name: Lint
         run: npm run lint
 

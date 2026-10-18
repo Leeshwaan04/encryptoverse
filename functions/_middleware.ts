@@ -59,6 +59,7 @@ export const onRequest = async (ctx: MiddlewareCtx): Promise<Response> => {
 
   let heading: string | undefined;
   let links: [string, string][] = [];
+  let dateModified: string | undefined;
   const route = meta ? null : parsePagePath(path);
   if (route && ctx.env.ASSETS) {
     // The ten live top coins keep their live-price description; every other page comes from the static data build.
@@ -71,13 +72,21 @@ export const onRequest = async (ctx: MiddlewareCtx): Promise<Response> => {
       }
     }
     const page = await resolvePage(ctx.env.ASSETS, url.origin, route);
+    if (page) {
+      try {
+        const m = await ctx.env.ASSETS.fetch(new Request(`${url.origin}/data/manifest.json`));
+        if (m.ok) dateModified = ((await m.json()) as { generatedAt?: string }).generatedAt;
+      } catch {
+        // freshness is optional metadata
+      }
+    }
     if (!page && !meta) {
       status = 404;
     } else if (page) {
       links = page.links;
       heading = page.info.heading;
       if (!meta) {
-        meta = { path, title: page.info.title, description: page.info.description, noindex: page.info.noindex };
+        meta = { path, title: page.info.title, description: page.info.description, noindex: page.info.noindex, exact: true };
         facts = page.info.facts;
       }
     }
@@ -103,7 +112,7 @@ export const onRequest = async (ctx: MiddlewareCtx): Promise<Response> => {
     .on('meta[property="og:url"]', attr('content', canonical))
     .on('meta[name="twitter:title"]', attr('content', title))
     .on('meta[name="twitter:description"]', attr('content', page.description))
-    .on('head', { element: (el) => void (notFound || el.append(jsonLd(page, heading ?? page.title), { html: true })) })
+    .on('head', { element: (el) => void (notFound || el.append(jsonLd(page, heading ?? page.title, dateModified), { html: true })) })
     .on('#root', { element: (el) => void el.setInnerContent(fallbackHtml(page, { coins, facts, heading, links }), { html: true }) })
     .transform(res);
 

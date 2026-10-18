@@ -11,6 +11,8 @@ export interface RouteMeta {
   description: string;
   /** Keep out of search results (personal or error pages). */
   noindex?: boolean;
+  /** `title` is already the complete document title: do not append the brand. */
+  exact?: boolean;
 }
 
 export const HOME_TITLE = 'Encryptoverse | Live Crypto Prices & Fear and Greed Index';
@@ -64,11 +66,12 @@ export const INFO_ROUTES = {
   '/risk-disclosure': { path: '/risk-disclosure', title: 'Risk Disclosure', description: 'Cryptoassets are volatile and can lose all of their value. Read this before acting on any information.' },
   '/privacy': { path: '/privacy', title: 'Privacy Policy', description: 'What data Encryptoverse collects, what stays in your browser, and which third parties are involved.' },
   '/terms': { path: '/terms', title: 'Terms of Use', description: 'The terms that apply when you use Encryptoverse.' },
+  '/editorial-policy': { path: '/editorial-policy', title: 'Editorial & Corrections Policy', description: 'How Encryptoverse pages are produced, what is automated, how errors are corrected and what the site will never do.' },
   '/contact': { path: '/contact', title: 'Contact', description: 'How to reach Encryptoverse to report errors, ask questions or request corrections.' },
 } as const satisfies Record<string, RouteMeta>;
 
 export const documentTitle = (m: RouteMeta): string =>
-  m.path === '/' ? HOME_TITLE : m.title.includes(SITE_NAME) ? m.title : `${m.title} | ${SITE_NAME}`;
+  m.exact ? m.title : m.path === '/' ? HOME_TITLE : m.title.includes(SITE_NAME) ? m.title : `${m.title} | ${SITE_NAME}`;
 
 /** Every path that has its own title, keyed by pathname. */
 export const ROUTE_TABLE: Record<string, RouteMeta> = Object.fromEntries(

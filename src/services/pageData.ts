@@ -1,6 +1,6 @@
 // Client-side loading for the programmatic pages: static JSON from /data (written by the data build) plus two small
 // live endpoints. Everything is cached in memory for the session.
-import { FIAT, LIST_PER_PAGE, dataUrls, type ChainRec, type CoinRec, type ConvertCoin, type ExchangeRec, type PageRoute, type ProtocolRec, type StableRec } from '../shared/pages';
+import { CONVERT_PAIR_COINS, FIAT, LIST_PER_PAGE, convertAllowed, dataUrls, type ChainRec, type CoinRec, type ConvertCoin, type ExchangeRec, type PageRoute, type ProtocolRec, type StableRec } from '../shared/pages';
 import { bucketOf } from '../shared/bucket';
 
 const cache = new Map<string, Promise<unknown>>();
@@ -63,16 +63,23 @@ export async function loadRates(): Promise<Record<string, number> | null> {
 export type LoadedPage =
   | { kind: 'coin'; coin: CoinRec; near: CoinListRow[]; convertible: boolean }
   | { kind: 'coinList'; page: number; rows: CoinListRow[]; pages: number; total: number }
-  | { kind: 'protocol'; protocol: ProtocolRec }
+  | { kind: 'protocol'; protocol: ProtocolRec; chainSlugs: Set<string> }
   | { kind: 'protocolList'; page: number; rows: ProtocolListRow[]; pages: number; total: number }
   | { kind: 'chain'; chain: ChainRec }
   | { kind: 'chainList'; rows: [string, string, number | null, number][] }
-  | { kind: 'stable'; stable: StableRec }
+  | { kind: 'stable'; stable: StableRec; chainSlugs: Set<string> }
   | { kind: 'stableList'; rows: [string, string, string, number | null][] }
   | { kind: 'exchange'; exchange: ExchangeRec; others: ExchangeRec[] }
   | { kind: 'exchangeList'; rows: ExchangeRec[] }
   | { kind: 'convertHub'; coins: ConvertCoin[] }
+  | { kind: 'convertCoin'; coin: CoinRec; pairs: boolean; others: ConvertCoin[] }
   | { kind: 'convert'; from: CoinRec; to: { fiat: string } | { coin: CoinRec } };
+
+export const loadChainSlugs = async (): Promise<Set<string>> => {
+  const rows = await loadJson<[string, string, number | null, number][]>('/data/chains-index.json').catch(() => []);
+  return new Set(rows.map((r) => r[0]));
+};
+const loadConvertOrder = async (): Promise<[string, string, string][]> => loadJson<[string, string, string][]>('/data/convert-coins.json').catch(() => []);
 
 const bucketRec = async <T>(dir: string, slug: string): Promise<T | null> => (await loadJson<Record<string, T>>(`/data/${dir}/${bucketOf(slug)}.json`))[slug] ?? null;
 
@@ -93,7 +100,7 @@ export async function loadPage(route: PageRoute): Promise<LoadedPage | null> {
       }
       case 'protocol': {
         const protocol = await bucketRec<ProtocolRec>('protocols', route.slug);
-        return protocol ? { kind: 'protocol', protocol } : null;
+        return protocol ? { kind: 'protocol', protocol, chainSlugs: await loadChainSlugs() } : null;
       }
       case 'protocolList': {
         const [rows, m] = await Promise.all([loadJson<ProtocolListRow[]>(dataUrls(route)[0]), loadManifest()]);
@@ -105,7 +112,7 @@ export async function loadPage(route: PageRoute): Promise<LoadedPage | null> {
         return { kind: 'chainList', rows: await loadJson(dataUrls(route)[0]) };
       case 'stable': {
         const stable = await bucketRec<StableRec>('stablecoins', route.slug);
-        return stable ? { kind: 'stable', stable } : null;
+        return stable ? { kind: 'stable', stable, chainSlugs: await loadChainSlugs() } : null;
       }
       case 'stableList':
         return { kind: 'stableList', rows: await loadJson(dataUrls(route)[0]) };
@@ -120,7 +127,18 @@ export async function loadPage(route: PageRoute): Promise<LoadedPage | null> {
         const rows = await loadJson<[string, string, string][]>(dataUrls(route)[0]);
         return { kind: 'convertHub', coins: rows.map(([s, n, y]) => ({ s, n, y })) };
       }
+      case 'convertCoin': {
+        const order = await loadConvertOrder();
+        if (!convertAllowed(route, order.map((r) => r[0]))) return null;
+        const coin = await bucketRec<CoinRec>('coins', route.coin);
+        if (!coin) return null;
+        const pairs = order.findIndex((r) => r[0] === route.coin) < CONVERT_PAIR_COINS;
+        const others = order.slice(0, CONVERT_PAIR_COINS).filter((r) => r[0] !== route.coin).map(([s, n, y]) => ({ s, n, y }));
+        return { kind: 'convertCoin', coin, pairs, others };
+      }
       case 'convert': {
+        const order = await loadConvertOrder();
+        if (!convertAllowed(route, order.map((r) => r[0]))) return null;
         const from = await bucketRec<CoinRec>('coins', route.from);
         if (!from) return null;
         if (route.to in FIAT) return { kind: 'convert', from, to: { fiat: route.to } };

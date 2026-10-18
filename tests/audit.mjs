@@ -376,7 +376,7 @@ async function clearOverlay(p) {
       await p.waitForTimeout(700);
       const r = await p.evaluate(() => ({ h1: document.querySelectorAll('h1').length, title: document.title, text: document.body.innerText, over: document.documentElement.scrollWidth - document.documentElement.clientWidth, canon: document.querySelector('link[rel=canonical]')?.href }));
       if (r.h1 !== 1) bad.push(`${path}: h1=${r.h1}`);
-      if (/NaN|undefined|Infinity|\[object/.test(r.text)) bad.push(`${path}: NaN/undefined text`);
+      if (/\bNaN\b|\bundefined\b|\[object|[$:+-]Infinity/.test(r.text)) bad.push(`${path}: NaN/undefined text`);
       if (r.over > 0) bad.push(`${path}: overflow ${r.over}`);
       if (!r.title.includes('Encryptoverse') || r.title === 'Encryptoverse | Live Crypto Prices & Fear and Greed Index') bad.push(`${path}: generic title "${r.title}"`);
       if (r.canon !== 'https://encryptoverse.com' + path) bad.push(`${path}: canonical ${r.canon}`);
@@ -406,6 +406,30 @@ async function clearOverlay(p) {
     const nfRobots = await p.locator('meta[name=robots]').getAttribute('content');
     await p.goto(BASE, { waitUntil: 'networkidle' });
     return { pass: /noindex/.test(robots) && nf && /noindex/.test(nfRobots), detail: `dead=${deadCoin} robots=${robots}; notFoundView=${nf} robots=${nfRobots}` };
+  });
+  await check('Trust', 'Editorial policy exists, is linked, and data pages say how they are made', async () => {
+    const problems = [];
+    await p.goto(BASE + 'editorial-policy', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(500);
+    const ed = await p.locator('main').innerText();
+    for (const w of ['How pages are produced', 'Corrections', 'Independence']) if (!ed.includes(w)) problems.push(`policy lacks "${w}"`);
+    if ((await p.locator('footer a[href="/editorial-policy"]').count()) < 1) problems.push('footer lacks the policy link');
+    await p.goto(BASE + 'methodology', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(400);
+    const meth = await p.locator('main').innerText();
+    if (/Only 50 assets are covered/.test(meth)) problems.push('methodology still claims only 50 assets');
+    if (!/Data pages/.test(meth)) problems.push('methodology does not describe the data pages');
+    const midCoin = JSON.parse(fs.readFileSync(new URL('coins/list/5.json', dataDir), 'utf8'))[0][0];
+    for (const path of ['/coin/' + midCoin, '/defi/protocol/lido', '/convert/bitcoin-to-usd', '/convert/bitcoin', '/stablecoins/tether']) {
+      await p.goto(BASE + path.slice(1), { waitUntil: 'networkidle' });
+      await p.waitForTimeout(600);
+      const box = p.locator('aside[aria-label="How this page is made"]');
+      const t = (await box.count()) ? await box.innerText() : '';
+      if (!/not individually reviewed/i.test(t)) problems.push(`${path}: missing "how this page is made"`);
+      for (const href of ['/methodology', '/editorial-policy', '/risk-disclosure']) if ((await box.locator(`a[href="${href}"]`).count()) < 1) problems.push(`${path}: box lacks ${href}`);
+    }
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return { pass: problems.length === 0, detail: problems.join(' | ') || 'policy, methodology and 4 page types ok' };
   });
   await check('Routing', 'Old ?tab= links redirect to the new path', async () => {
     await p.goto(BASE + '?tab=defi', { waitUntil: 'networkidle' });

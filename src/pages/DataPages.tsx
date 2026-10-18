@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ExternalLink, Info } from 'lucide-react';
 import {
-  FIAT, LIST_PER_PAGE, chainInfo, chainListInfo, coinInfo, coinIsSubstantive, coinListInfo, convertHubInfo, convertInfo, exchangeInfo,
+  FIAT, LIST_PER_PAGE, chainInfo, convertCoinInfo, jumpPages, chainListInfo, coinInfo, coinIsSubstantive, coinListInfo, convertHubInfo, convertInfo, exchangeInfo,
   exchangeListInfo, pathOf, pct, protocolInfo, protocolListInfo, qty, stableInfo, stableListInfo, usd,
   type PageInfo, type PageRoute,
 } from '../shared/pages';
@@ -69,24 +69,20 @@ const Notice: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 );
 
-const Pager: React.FC<{ nav: Nav; page: number; pages: number; make: (p: number) => PageRoute }> = ({ nav, page, pages, make }) => {
-  const nums: number[] = [];
-  for (let p = Math.max(1, page - 3); p <= Math.min(pages, page + 3); p++) nums.push(p);
-  return (
-    <nav aria-label="Pagination" className="flex flex-wrap items-center gap-2 text-sm">
-      {page > 1 && <L to={pathOf(make(page - 1))} nav={nav}>← Previous</L>}
-      {nums.map((p) =>
-        p === page ? (
-          <span key={p} aria-current="page" className="rounded-lg bg-cyan-500/20 px-2.5 py-1 font-semibold text-cyan-200">{p}</span>
-        ) : (
-          <L key={p} to={pathOf(make(p))} nav={nav} className="rounded-lg border border-slate-800 px-2.5 py-1 text-slate-300 hover:text-white">{p}</L>
-        ),
-      )}
-      {page < pages && <L to={pathOf(make(page + 1))} nav={nav}>Next →</L>}
-      <span className="text-slate-400">of {pages}</span>
-    </nav>
-  );
-};
+const Pager: React.FC<{ nav: Nav; page: number; pages: number; make: (p: number) => PageRoute }> = ({ nav, page, pages, make }) => (
+  <nav aria-label="Pagination" className="flex flex-wrap items-center gap-2 text-sm">
+    {page > 1 && <L to={pathOf(make(page - 1))} nav={nav}>← Previous</L>}
+    {jumpPages(page, pages).map((p) =>
+      p === page ? (
+        <span key={p} aria-current="page" className="rounded-lg bg-cyan-500/20 px-2.5 py-1 font-semibold text-cyan-200">{p}</span>
+      ) : (
+        <L key={p} to={pathOf(make(p))} nav={nav} className="rounded-lg border border-slate-800 px-2.5 py-1 text-slate-300 hover:text-white">{p}</L>
+      ),
+    )}
+    {page < pages && <L to={pathOf(make(page + 1))} nav={nav}>Next →</L>}
+    <span className="text-slate-400">of {pages}</span>
+  </nav>
+);
 
 const Table: React.FC<{ head: string[]; children: React.ReactNode; caption: string }> = ({ head, children, caption }) => (
   <div className="overflow-x-auto rounded-xl border border-slate-800">
@@ -106,10 +102,16 @@ const Table: React.FC<{ head: string[]; children: React.ReactNode; caption: stri
 const Td: React.FC<{ children: React.ReactNode; left?: boolean }> = ({ children, left }) => <td className={`px-3 py-2 tabular-nums ${left ? '' : 'text-right'}`}>{children}</td>;
 
 const SourceNote: React.FC<{ nav: Nav; source: string; live?: boolean; generatedAt?: string }> = ({ nav, source, live, generatedAt }) => (
-  <p className="text-xs text-slate-400">
-    {live ? `Live figures from ${source}.` : `Data from ${source}${generatedAt ? `, snapshot taken ${new Date(generatedAt).toUTCString().replace(' GMT', ' UTC')}` : ''}.`} Not financial advice. How we collect and check data:{' '}
-    <L to="/methodology" nav={nav}>methodology</L>.
-  </p>
+  <aside aria-label="How this page is made" className="rounded-xl border border-slate-800 bg-slate-900/40 p-3.5 text-xs text-slate-400 space-y-1.5">
+    <p>
+      <strong className="text-slate-300">How this page is made:</strong>{' '}
+      {live ? `Live figures from ${source}.` : `Figures from ${source}${generatedAt ? `, snapshot taken ${new Date(generatedAt).toUTCString().replace(' GMT', ' UTC')}` : ''}.`}{' '}
+      Generated automatically and not individually reviewed. Encryptoverse takes no payment for placement and recommends no asset.
+    </p>
+    <p>
+      Information only, not financial advice. <L to="/methodology" nav={nav}>Methodology</L> · <L to="/editorial-policy" nav={nav}>Editorial &amp; corrections policy</L> · <L to="/risk-disclosure" nav={nav}>Risk disclosure</L>.
+    </p>
+  </aside>
 );
 
 // ------------------------------------------------------------------------------------------------ info for meta
@@ -126,6 +128,7 @@ export function infoFor(p: LoadedPage): PageInfo {
     case 'exchange': return exchangeInfo(p.exchange);
     case 'exchangeList': return exchangeListInfo();
     case 'convertHub': return convertHubInfo();
+    case 'convertCoin': return convertCoinInfo({ s: p.coin.s, n: p.coin.n, y: p.coin.y }, p.pairs);
     case 'convert':
       return 'fiat' in p.to
         ? convertInfo({ s: p.from.s, n: p.from.n, y: p.from.y }, { code: p.to.fiat, name: FIAT[p.to.fiat] })
@@ -198,7 +201,8 @@ const CoinView: React.FC<{ p: Extract<LoadedPage, { kind: 'coin' }>; nav: Nav; m
       <Section title="Convert">
         {p.convertible ? (
           <ul className="flex flex-wrap gap-2 text-sm">
-            {['usd', 'eur', 'gbp', 'inr', 'jpy', 'aud'].map((f) => (
+            <li><L to={`/convert/${c.s}`} nav={nav} className="inline-block rounded-lg border border-cyan-500/40 px-2.5 py-1 text-cyan-200 hover:text-white">All {sym} conversions</L></li>
+            {Object.keys(FIAT).map((f) => (
               <li key={f}><L to={`/convert/${c.s}-to-${f}`} nav={nav} className="inline-block rounded-lg border border-slate-800 px-2.5 py-1 text-slate-200 hover:text-white">{sym} to {f.toUpperCase()}</L></li>
             ))}
           </ul>
@@ -275,9 +279,12 @@ const SimpleList: React.FC<{ nav: Nav; info: PageInfo; trail: [string, string][]
 );
 
 // ------------------------------------------------------------------------------------------------ DeFi entities
+const chainSlugOf = (name: string) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+
 const ProtocolView: React.FC<{ p: Extract<LoadedPage, { kind: 'protocol' }>; nav: Nav; manifest: Manifest | null }> = ({ p, nav, manifest }) => {
   const x = p.protocol;
-  const chainSlug = (name: string) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  // Only link to chain pages that exist; other chains are shown as plain text.
+  const ChainName: React.FC<{ name: string }> = ({ name }) => (p.chainSlugs.has(chainSlugOf(name)) ? <L to={`/defi/chain/${chainSlugOf(name)}`} nav={nav}>{name}</L> : <>{name}</>);
   return (
     <div className="space-y-8">
       <Crumbs nav={nav} trail={[['/defi', 'DeFi'], ['/defi/protocols', 'Protocols']]} current={x.n} />
@@ -301,7 +308,7 @@ const ProtocolView: React.FC<{ p: Extract<LoadedPage, { kind: 'protocol' }>; nav
           <Table head={['Chain', 'TVL']} caption={`${x.n} TVL by chain`}>
             {x.tc.map(([chain, v]) => (
               <tr key={chain}>
-                <Td left><L to={`/defi/chain/${chainSlug(chain)}`} nav={nav}>{chain}</L></Td>
+                <Td left><ChainName name={chain} /></Td>
                 <Td>{usd(v, true)}</Td>
               </tr>
             ))}
@@ -355,7 +362,6 @@ const ChainView: React.FC<{ p: Extract<LoadedPage, { kind: 'chain' }>; nav: Nav;
 
 const StableView: React.FC<{ p: Extract<LoadedPage, { kind: 'stable' }>; nav: Nav; manifest: Manifest | null }> = ({ p, nav, manifest }) => {
   const s = p.stable;
-  const chainSlug = (name: string) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
   const wk = s.c7d && s.cs ? ((s.cs - s.c7d) / s.c7d) * 100 : null;
   const mo = s.c30 && s.cs ? ((s.cs - s.c30) / s.c30) * 100 : null;
   return (
@@ -375,7 +381,13 @@ const StableView: React.FC<{ p: Extract<LoadedPage, { kind: 'stable' }>; nav: Na
         <Section title={`Chains (${s.nc})`}>
           <ul className="flex flex-wrap gap-2 text-sm">
             {s.ch.map((ch) => (
-              <li key={ch}><L to={`/defi/chain/${chainSlug(ch)}`} nav={nav} className="inline-block rounded-lg border border-slate-800 px-2.5 py-1 text-slate-200 hover:text-white">{ch}</L></li>
+              <li key={ch}>
+                {p.chainSlugs.has(chainSlugOf(ch)) ? (
+                  <L to={`/defi/chain/${chainSlugOf(ch)}`} nav={nav} className="inline-block rounded-lg border border-slate-800 px-2.5 py-1 text-slate-200 hover:text-white">{ch}</L>
+                ) : (
+                  <span className="inline-block rounded-lg border border-slate-800 px-2.5 py-1 text-slate-400">{ch}</span>
+                )}
+              </li>
             ))}
           </ul>
         </Section>
@@ -493,15 +505,14 @@ const ConvertView: React.FC<{ p: Extract<LoadedPage, { kind: 'convert' }>; nav: 
         <ul className="flex flex-wrap gap-2 text-sm">
           <li><L to={`/coin/${p.from.s}`} nav={nav} className="inline-block rounded-lg border border-slate-800 px-2.5 py-1 text-slate-200 hover:text-white">{p.from.n} price</L></li>
           {toCoin && <li><L to={`/convert/${toCoin.s}-to-${p.from.s}`} nav={nav} className="inline-block rounded-lg border border-slate-800 px-2.5 py-1 text-slate-200 hover:text-white">{toSym} to {fromSym}</L></li>}
-          {Object.keys(FIAT).filter((f) => f !== fiat).slice(0, 8).map((f) => (
+          <li><L to={`/convert/${p.from.s}`} nav={nav} className="inline-block rounded-lg border border-cyan-500/40 px-2.5 py-1 text-cyan-200 hover:text-white">All {fromSym} conversions</L></li>
+          {Object.keys(FIAT).filter((f) => f !== fiat).map((f) => (
             <li key={f}><L to={`/convert/${p.from.s}-to-${f}`} nav={nav} className="inline-block rounded-lg border border-slate-800 px-2.5 py-1 text-slate-200 hover:text-white">{fromSym} to {f.toUpperCase()}</L></li>
           ))}
         </ul>
       </Section>
-      <p className="text-xs text-slate-400">
-        {live ? 'Live rate.' : 'Rate from the latest data snapshot.'} Crypto prices from CoinLore{fiat ? '; currency rates are European Central Bank reference rates via Frankfurter' : ''}. Rates are indicative: real exchanges add spreads and fees.
-        {manifest && !live ? ` Snapshot: ${new Date(manifest.generatedAt).toUTCString().replace(' GMT', ' UTC')}.` : ''} <L to="/methodology" nav={nav}>Methodology</L>.
-      </p>
+      <p className="text-xs text-slate-400">Rates are indicative: real exchanges add spreads and fees, and conversions are not a quote.</p>
+      <SourceNote nav={nav} source={fiat ? 'CoinLore (crypto) and the European Central Bank via Frankfurter (currencies)' : 'CoinLore'} live={live} generatedAt={manifest?.generatedAt} />
     </div>
   );
 };
@@ -511,24 +522,73 @@ const ConvertHubView: React.FC<{ p: Extract<LoadedPage, { kind: 'convertHub' }>;
     <Crumbs nav={nav} trail={[]} current="Converter" />
     <header className="space-y-2">
       <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Crypto converter</h1>
-      <p className="text-sm text-slate-300">Convert {p.coins.length} cryptocurrencies into {Object.keys(FIAT).length} currencies, or between the largest coins. Pick a coin below.</p>
+      <p className="text-sm text-slate-300">Convert {p.coins.length} cryptocurrencies into {Object.keys(FIAT).length} currencies, or between the largest coins. Pick a coin below to see every conversion for it.</p>
     </header>
-    <Section title="Popular conversions">
+    <Section title={`${p.coins.length} coins`}>
       <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
-        {p.coins.slice(0, 60).map((c) => (
-          <li key={c.s}><L to={`/convert/${c.s}-to-usd`} nav={nav} className="block rounded-lg border border-slate-800 px-2.5 py-1.5 text-slate-200 hover:text-white">{c.n} to USD</L></li>
-        ))}
-      </ul>
-    </Section>
-    <Section title={`${p.coins[0]?.n ?? 'Bitcoin'} in every currency`}>
-      <ul className="flex flex-wrap gap-2 text-sm">
-        {Object.keys(FIAT).map((f) => (
-          <li key={f}><L to={`/convert/${p.coins[0]?.s ?? 'bitcoin'}-to-${f}`} nav={nav} className="inline-block rounded-lg border border-slate-800 px-2.5 py-1 text-slate-200 hover:text-white">{(p.coins[0]?.y ?? 'BTC').toUpperCase()} to {f.toUpperCase()}</L></li>
+        {p.coins.map((c) => (
+          <li key={c.s}><L to={`/convert/${c.s}`} nav={nav} className="block rounded-lg border border-slate-800 px-2.5 py-1.5 text-slate-200 hover:text-white">{c.n} <span className="text-slate-400">{c.y.toUpperCase()}</span></L></li>
         ))}
       </ul>
     </Section>
   </div>
 );
+
+const ConvertCoinView: React.FC<{ p: Extract<LoadedPage, { kind: 'convertCoin' }>; nav: Nav; manifest: Manifest | null }> = ({ p, nav, manifest }) => {
+  const [live, setLive] = useState<LiveCoin | null>(null);
+  const [rates, setRates] = useState<Record<string, number> | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void loadLiveCoin(p.coin.s).then((l) => alive && setLive(l));
+    void loadRates().then((r) => alive && setRates(r));
+    return () => {
+      alive = false;
+    };
+  }, [p.coin.s]);
+  const c = p.coin;
+  const sym = c.y.toUpperCase();
+  const price = live?.p ?? c.p;
+  const fmtFiat = (code: string, n: number) => {
+    try {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: code.toUpperCase(), maximumFractionDigits: n >= 1 ? 2 : 6 }).format(n);
+    } catch {
+      return `${n.toFixed(2)} ${code.toUpperCase()}`;
+    }
+  };
+  return (
+    <div className="space-y-8">
+      <Crumbs nav={nav} trail={[['/convert', 'Converter']]} current={c.n} />
+      <header className="space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{c.n} ({sym}) converter</h1>
+        <p className="text-sm text-slate-300">Convert {c.n} into {Object.keys(FIAT).length} currencies{p.pairs ? ' or other cryptocurrencies' : ''}. <L to={`/coin/${c.s}`} nav={nav}>{c.n} price and stats</L>.</p>
+      </header>
+      <Section title={`1 ${sym} in every currency`}>
+        <Table head={['Currency', `1 ${sym} =`]} caption={`${c.n} in ${Object.keys(FIAT).length} currencies`}>
+          {Object.entries(FIAT).map(([code, name]) => {
+            const rate = code === 'usd' ? 1 : rates?.[code];
+            return (
+              <tr key={code}>
+                <Td left><L to={`/convert/${c.s}-to-${code}`} nav={nav}>{name} ({code.toUpperCase()})</L></Td>
+                <Td>{price && rate ? fmtFiat(code, price * rate) : 'n/a'}</Td>
+              </tr>
+            );
+          })}
+        </Table>
+      </Section>
+      {p.pairs && (
+        <Section title={`${sym} to other cryptocurrencies`}>
+          <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
+            {p.others.map((o) => (
+              <li key={o.s}><L to={`/convert/${c.s}-to-${o.s}`} nav={nav} className="block rounded-lg border border-slate-800 px-2.5 py-1.5 text-slate-200 hover:text-white">{sym} to {o.y.toUpperCase()}</L></li>
+            ))}
+          </ul>
+        </Section>
+      )}
+      <p className="text-xs text-slate-400">Rates are indicative: real exchanges add spreads and fees, and conversions are not a quote.</p>
+      <SourceNote nav={nav} source="CoinLore (crypto) and the European Central Bank via Frankfurter (currencies)" live={Boolean(live && rates)} generatedAt={manifest?.generatedAt} />
+    </div>
+  );
+};
 
 // ------------------------------------------------------------------------------------------------ switchboard
 export const DataPage: React.FC<{ route: PageRoute; nav: Nav }> = ({ route, nav }) => {
@@ -552,7 +612,7 @@ export const DataPage: React.FC<{ route: PageRoute; nav: Nav }> = ({ route, nav 
   useEffect(() => {
     if (page) {
       const info = infoFor(page);
-      applyRouteMeta({ path: key, title: info.title, description: info.description, noindex: info.noindex });
+      applyRouteMeta({ path: key, title: info.title, description: info.description, noindex: info.noindex, exact: true });
     } else if (missing) {
       applyRouteMeta({ path: key, title: 'Page not found | Encryptoverse', description: 'This page does not exist.', noindex: true });
     }
@@ -589,6 +649,7 @@ export const DataPage: React.FC<{ route: PageRoute; nav: Nav }> = ({ route, nav 
     case 'exchange': return <ExchangeView p={page} nav={nav} manifest={manifest} />;
     case 'convert': return <ConvertView p={page} nav={nav} manifest={manifest} />;
     case 'convertHub': return <ConvertHubView p={page} nav={nav} />;
+    case 'convertCoin': return <ConvertCoinView p={page} nav={nav} manifest={manifest} />;
     case 'chainList':
       return (
         <SimpleList nav={nav} info={chainListInfo()} trail={[['/defi', 'DeFi']]} current="Chains" manifest={manifest} source="DefiLlama"

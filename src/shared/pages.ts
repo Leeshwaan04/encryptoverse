@@ -7,7 +7,7 @@ export type CoinRec = { s: string; i: string; n: string; y: string; r: number; p
 export type ProtocolRec = { s: string; n: string; y: string | null; u: string | null; d: string | null; k: string | null; ch: string[]; nc: number; t: number | null; c1: number | null; c1d: number | null; c7: number | null; m: number | null; tw: string | null; l: number | null; tc: [string, number][] };
 export type ChainRec = { s: string; n: string; y: string | null; t: number | null; id: number | null; pc: number; tp: [string, string, string | null, number][] };
 export type StableRec = { s: string; n: string; y: string; peg: string; mech: string | null; cs: number | null; c1d: number | null; c7d: number | null; c30: number | null; pr: number | null; ch: string[]; nc: number };
-export type ExchangeRec = { s: string; n: string; v: number | null; ap: number | null; u: string | null; co: string | null };
+export type ExchangeRec = { s: string; n: string; v: number | null; ap: number | null; u: string | null; co: string | null; r?: number };
 export type ConvertCoin = { s: string; n: string; y: string };
 
 /** Fiat currencies with a converter page (all published by the ECB via Frankfurter). */
@@ -31,6 +31,7 @@ export type PageRoute =
   | { kind: 'stableList' }
   | { kind: 'exchangeList' }
   | { kind: 'convertHub' }
+  | { kind: 'convertCoin'; coin: string }
   | { kind: 'protocol'; slug: string }
   | { kind: 'chain'; slug: string }
   | { kind: 'stable'; slug: string }
@@ -59,6 +60,7 @@ export function parsePagePath(path: string): PageRoute | null {
   if ((s = seg(path, '/stablecoins/'))) return { kind: 'stable', slug: s };
   if ((s = seg(path, '/exchange/'))) return { kind: 'exchange', slug: s };
   if ((s = seg(path, '/convert/'))) {
+    if (!s.includes('-to-')) return /^[a-z0-9-]{1,64}$/.test(s) ? { kind: 'convertCoin', coin: s } : null;
     // "<coin>-to-<fiat>" or "<coin>-to-<coin>". A coin slug can itself contain "-to-", so try every split for a fiat target.
     const parts = s.split('-to-');
     for (let i = 1; i < parts.length; i++) {
@@ -79,6 +81,7 @@ export const pathOf = (r: PageRoute): string => {
     case 'stableList': return '/stablecoins';
     case 'exchangeList': return '/exchanges';
     case 'convertHub': return '/convert';
+    case 'convertCoin': return `/convert/${r.coin}`;
     case 'protocol': return `/defi/protocol/${r.slug}`;
     case 'chain': return `/defi/chain/${r.slug}`;
     case 'stable': return `/stablecoins/${r.slug}`;
@@ -97,11 +100,12 @@ export function dataUrls(r: PageRoute): string[] {
     case 'stableList': return ['/data/stablecoins-index.json'];
     case 'exchangeList': return ['/data/exchanges.json'];
     case 'convertHub': return ['/data/convert-coins.json'];
+    case 'convertCoin': return [`/data/coins/${bucketOf(r.coin)}.json`, '/data/convert-coins.json'];
     case 'protocol': return [`/data/protocols/${bucketOf(r.slug)}.json`];
     case 'chain': return [`/data/chains/${r.slug}.json`];
     case 'stable': return [`/data/stablecoins/${bucketOf(r.slug)}.json`];
     case 'exchange': return ['/data/exchanges.json'];
-    case 'convert': return [`/data/coins/${bucketOf(r.from)}.json`, ...(r.to in FIAT ? [] : [`/data/coins/${bucketOf(r.to)}.json`])];
+    case 'convert': return ['/data/convert-coins.json', `/data/coins/${bucketOf(r.from)}.json`, ...(r.to in FIAT ? [] : [`/data/coins/${bucketOf(r.to)}.json`])];
   }
 }
 
@@ -135,13 +139,17 @@ export interface PageInfo {
 }
 
 const isUpper = (s: string) => s.toUpperCase();
+/** Append the brand to a title only when the result still fits in a search result (about 65 characters). */
+const brand = (t: string): string => (t.length + 16 <= 65 ? `${t} | Encryptoverse` : t);
+/** Very long names are shortened in titles and headings only (the full name stays in the page body). */
+export const shortName = (n: string, max = 42): string => (n.length > max ? `${n.slice(0, max - 1).trimEnd()}…` : n);
 
 export function coinInfo(c: CoinRec): PageInfo {
   const sym = isUpper(c.y);
   const active = coinIsSubstantive(c);
   return {
-    title: `${c.n} (${sym}) Price, Market Cap & Stats | Encryptoverse`,
-    heading: `${c.n} (${sym}) price`,
+    title: brand(`${shortName(c.n)} (${sym}) Price, Market Cap & Stats`),
+    heading: `${shortName(c.n, 60)} (${sym}) price`,
     description: active
       ? `${c.n} (${sym}) ranks #${c.r} by market cap${c.m ? ` at ${usd(c.m, true)}` : ''}. Price, 24-hour volume, supply and recent changes with the data source named.`
       : `${c.n} (${sym}) is listed at rank #${c.r} but shows little or no trading activity. Last recorded price, supply and the data source are shown here.`,
@@ -163,7 +171,7 @@ export function coinListInfo(page: number, total: number): PageInfo {
   const first = (page - 1) * LIST_PER_PAGE + 1;
   const last = Math.min(page * LIST_PER_PAGE, total);
   return {
-    title: `Cryptocurrency Prices by Market Cap, Rank ${first}-${last}${page > 1 ? ` (Page ${page})` : ''} | Encryptoverse`,
+    title: brand(`Crypto Prices by Market Cap, Rank ${first}-${last}`),
     heading: `Cryptocurrencies ranked ${first}–${last}`,
     description: `Prices, market cap and 24-hour change for the cryptocurrencies ranked ${first} to ${last} by market cap, with links to each coin's page.`,
     facts: [],
@@ -175,7 +183,7 @@ export function coinListInfo(page: number, total: number): PageInfo {
 export function protocolInfo(p: ProtocolRec): PageInfo {
   const good = protocolIsSubstantive(p);
   return {
-    title: `${p.n} TVL, Chains & Stats${p.k ? ` (${p.k})` : ''} | Encryptoverse`,
+    title: brand(`${shortName(p.n)} TVL, Chains & Stats`),
     heading: `${p.n}${p.y ? ` (${isUpper(p.y)})` : ''}: TVL and stats`,
     description: good
       ? `${p.n} is a ${p.k ?? 'DeFi'} protocol with ${usd(p.t, true)} total value locked across ${p.nc} chain${p.nc === 1 ? '' : 's'}. TVL changes, chain breakdown and links, from DefiLlama.`
@@ -196,10 +204,16 @@ export function protocolInfo(p: ProtocolRec): PageInfo {
 export function chainInfo(c: ChainRec): PageInfo {
   const good = chainIsSubstantive(c);
   return {
-    title: `${c.n} TVL and Top Protocols | Encryptoverse`,
+    title: brand(`${c.n} TVL and Top Protocols`),
     heading: `${c.n}: TVL and top protocols`,
     description: `${c.n} holds ${usd(c.t, true)} in total value locked across ${c.pc} protocol${c.pc === 1 ? '' : 's'}. See the largest protocols on ${c.n}, from DefiLlama.`,
-    facts: [c.t !== null ? `Total value locked: ${usd(c.t, true)}` : '', `Protocols: ${c.pc}`, c.y ? `Native token: ${isUpper(c.y)}` : ''].filter(Boolean),
+    facts: [
+      c.t !== null ? `Total value locked: ${usd(c.t, true)}` : '',
+      `Protocols: ${c.pc}`,
+      c.y ? `Native token: ${isUpper(c.y)}` : '',
+      c.tp[0] ? `Largest protocol: ${c.tp[0][1]} (${usd(c.tp[0][3], true)} on this chain)` : '',
+      c.tp[0] && c.t && c.t > 0 && c.tp[0][3] <= c.t ? `Share held by the largest protocol: ${((c.tp[0][3] / c.t) * 100).toFixed(1)}%` : '',
+    ].filter(Boolean),
     noindex: !good,
     related: [['/defi', 'DeFi overview']],
   };
@@ -208,7 +222,7 @@ export function chainInfo(c: ChainRec): PageInfo {
 export function stableInfo(s: StableRec): PageInfo {
   const good = stableIsSubstantive(s);
   return {
-    title: `${s.n} (${isUpper(s.y)}) Supply, Peg & Chains | Encryptoverse`,
+    title: brand(`${s.n} (${isUpper(s.y)}) Supply, Peg & Chains`),
     heading: `${s.n} (${isUpper(s.y)}) stablecoin`,
     description: `${s.n} (${isUpper(s.y)}) has ${usd(s.cs, true)} in circulation across ${s.nc} chain${s.nc === 1 ? '' : 's'}. Peg type, mechanism, price and supply changes, from DefiLlama.`,
     facts: [
@@ -225,10 +239,10 @@ export function stableInfo(s: StableRec): PageInfo {
 
 export function exchangeInfo(e: ExchangeRec): PageInfo {
   return {
-    title: `${e.n} Exchange: 24h Volume & Trading Pairs | Encryptoverse`,
+    title: brand(`${e.n} Exchange: 24h Volume & Trading Pairs`),
     heading: `${e.n} exchange`,
     description: `${e.n} reports ${usd(e.v, true)} in 24-hour trading volume across ${e.ap ?? 'n/a'} active pairs${e.co ? ` (${e.co})` : ''}. Data from CoinLore.`,
-    facts: [e.v !== null ? `24h volume: ${usd(e.v, true)}` : '', e.ap !== null ? `Active pairs: ${e.ap}` : '', e.co ? `Country: ${e.co}` : ''].filter(Boolean),
+    facts: [e.v !== null ? `24h volume: ${usd(e.v, true)}` : '', e.ap !== null ? `Active pairs: ${e.ap}` : '', e.r ? `Volume rank among tracked exchanges: #${e.r}` : '', e.co ? `Country: ${e.co}` : ''].filter(Boolean),
     noindex: !exchangeIsSubstantive(e),
     related: [['/coins', 'Cryptocurrencies by rank']],
   };
@@ -239,7 +253,7 @@ export function convertInfo(from: ConvertCoin, to: { code: string; name: string 
   const fromSym = from.y.toUpperCase();
   const toSym = 'code' in to ? to.code.toUpperCase() : to.y.toUpperCase();
   return {
-    title: `Convert ${fromSym} to ${toSym}: ${from.n} to ${'code' in to ? to.name : to.n} Calculator | Encryptoverse`,
+    title: brand(`${fromSym} to ${toSym}: Convert ${from.n} to ${'code' in to ? to.name : to.n}`),
     heading: `${from.n} (${fromSym}) to ${toLabel}`,
     description: `Convert ${from.n} to ${'code' in to ? to.name : to.n} at the current rate. Enter any amount of ${fromSym} and see the ${toSym} value, with a table of common amounts.`,
     facts: [],
@@ -252,7 +266,7 @@ export function protocolListInfo(page: number, total: number): PageInfo {
   const first = (page - 1) * LIST_PER_PAGE + 1;
   const last = Math.min(page * LIST_PER_PAGE, total);
   return {
-    title: `DeFi Protocols Ranked by TVL, ${first}-${last}${page > 1 ? ` (Page ${page})` : ''} | Encryptoverse`,
+    title: brand(`DeFi Protocols by TVL, Rank ${first}-${last}`),
     heading: `DeFi protocols ranked ${first}–${last} by TVL`,
     description: `DeFi protocols ranked ${first} to ${last} by total value locked, with category and 24-hour TVL change, from DefiLlama.`,
     facts: [],
@@ -261,26 +275,62 @@ export function protocolListInfo(page: number, total: number): PageInfo {
   };
 }
 export const chainListInfo = (): PageInfo => ({
-  title: 'Blockchains Ranked by DeFi TVL | Encryptoverse',
+  title: brand('Blockchains Ranked by DeFi TVL'),
   heading: 'Blockchains ranked by DeFi TVL',
   description: 'Every blockchain tracked by DefiLlama, ranked by the total value locked in its DeFi protocols.',
   facts: [], noindex: false, related: [['/defi', 'DeFi overview']],
 });
 export const stableListInfo = (): PageInfo => ({
-  title: 'Stablecoins Ranked by Circulating Supply | Encryptoverse',
+  title: brand('Stablecoins Ranked by Circulating Supply'),
   heading: 'Stablecoins ranked by circulating supply',
   description: 'Every stablecoin tracked by DefiLlama, ranked by circulating supply, with peg type and chain count.',
   facts: [], noindex: false, related: [['/defi', 'DeFi overview']],
 });
 export const exchangeListInfo = (): PageInfo => ({
-  title: 'Crypto Exchanges Ranked by 24h Volume | Encryptoverse',
+  title: brand('Crypto Exchanges Ranked by 24h Volume'),
   heading: 'Crypto exchanges ranked by 24h volume',
   description: 'Cryptocurrency exchanges ranked by reported 24-hour trading volume, with active pairs and country, from CoinLore.',
   facts: [], noindex: false, related: [['/coins', 'Cryptocurrencies by rank']],
 });
 export const convertHubInfo = (): PageInfo => ({
-  title: 'Crypto Converter: Convert Bitcoin, Ethereum and 300 Coins | Encryptoverse',
+  title: brand(`Crypto Converter: ${CONVERT_FIAT_COINS} Coins to ${Object.keys(FIAT).length} Currencies`),
   heading: 'Crypto converter',
   description: `Convert the top ${CONVERT_FIAT_COINS} cryptocurrencies into ${Object.keys(FIAT).length} currencies, or between the top ${CONVERT_PAIR_COINS} coins, at current rates.`,
   facts: [], noindex: false, related: [['/converter', 'Full converter']],
 });
+
+/**
+ * Which converter pages exist. `order` is the ranked slug list in /data/convert-coins.json. Pages exist only for the
+ * combinations that are published (top coins x fiat, top coins x top coins), never for arbitrary slugs, so the page
+ * space is bounded and crawlers cannot wander into millions of near-identical URLs.
+ */
+export function convertAllowed(route: Extract<PageRoute, { kind: 'convert' | 'convertCoin' }>, order: string[]): boolean {
+  const idx = (slug: string) => order.indexOf(slug);
+  if (route.kind === 'convertCoin') return idx(route.coin) >= 0;
+  const a = idx(route.from);
+  if (a < 0) return false;
+  if (route.to in FIAT) return a < CONVERT_FIAT_COINS;
+  const b = idx(route.to);
+  return a < CONVERT_PAIR_COINS && b >= 0 && b < CONVERT_PAIR_COINS && a !== b;
+}
+
+/** Pagination links: neighbours, first/last and every tenth page, so any page is only a few clicks from page 1. */
+export function jumpPages(page: number, pages: number): number[] {
+  const set = new Set<number>([1, pages]);
+  for (let p = page - 3; p <= page + 3; p++) if (p >= 1 && p <= pages) set.add(p);
+  for (let p = 10; p <= pages; p += 10) set.add(p);
+  return [...set].sort((a, b) => a - b);
+}
+
+export function convertCoinInfo(coin: ConvertCoin, hasPairs: boolean): PageInfo {
+  const sym = coin.y.toUpperCase();
+  const nFiat = Object.keys(FIAT).length;
+  return {
+    title: brand(`${coin.n} (${sym}) Converter: ${sym} to ${nFiat} Currencies`),
+    heading: `${coin.n} (${sym}) converter`,
+    description: `Convert ${coin.n} (${sym}) into ${nFiat} currencies${hasPairs ? ` or ${CONVERT_PAIR_COINS - 1} other cryptocurrencies` : ''} at the current rate, with a table of live conversion rates.`,
+    facts: [`Currencies: ${nFiat}`, ...(hasPairs ? [`Crypto pairs: ${CONVERT_PAIR_COINS - 1}`] : [])],
+    noindex: false,
+    related: [['/convert', 'Crypto converter']],
+  };
+}
