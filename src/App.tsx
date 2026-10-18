@@ -312,7 +312,6 @@ function App() {
           fearGreed={fearGreed}
           currency={currency}
           isLive={isLive}
-          source={dataSource}
           onSelectToken={openToken}
           onOpenConverter={() => selectTab('converter')}
           coinOpen={Boolean(selectedToken)}

@@ -25,7 +25,10 @@
       "Bash(sed -i '' \"s/await page.waitForTimeout\\(1500\\);\\\\$/await page.waitForTimeout\\(3800\\);/\" scroll_m.mjs)",
       "Bash(node scroll_m.mjs)",
       "Bash(timeout 110 node flowD.mjs)",
-      "Bash(node flowD.mjs)"
+      "Bash(node flowD.mjs)",
+      "Bash(node flowE.mjs mobile)",
+      "Bash(node t4.mjs)",
+      "Bash(node t5.mjs)"
     ]
   }
 }

@@ -10,8 +10,6 @@ interface HeroProps {
   fearGreed: FearGreedResult | null;
   currency: Currency;
   isLive: boolean;
-  /** Provider(s) that supplied the current figures. */
-  source: string;
   onSelectToken: (token: CryptoToken) => void;
   onOpenConverter: () => void;
   /** A coin detail is open (/coin/<id>): its name is the page heading, so this headline stops being the h1. */
@@ -49,7 +47,7 @@ function useCountUp(target: number, duration = 1100): number {
 
 const formatTrillions = (n: number) => `$${(n / 1e12).toFixed(2)}T`;
 
-export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, isLive, source, onSelectToken, onOpenConverter, coinOpen = false }) => {
+export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, isLive, onSelectToken, onOpenConverter, coinOpen = false }) => {
   const sectionRef = useRef<HTMLElement>(null);
   const videoWrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -162,13 +160,13 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[250px] pb-28 sm:pt-[300px] sm:pb-32 min-h-[520px] lg:min-h-[600px] lg:pt-24 lg:pb-36 flex flex-col justify-center">
         <div className="max-w-xl lg:max-w-2xl space-y-5 [text-shadow:0_1px_14px_rgba(7,9,14,0.95)]">
-          <div className="hero-rise inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-[11px] text-cyan-300 backdrop-blur" style={delay(0.05)}>
-            <span className="relative flex h-2 w-2">
-              <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${isLive ? 'animate-ping bg-emerald-400' : 'bg-amber-400'}`} />
-              <span className={`relative inline-flex h-2 w-2 rounded-full ${isLive ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-            </span>
-            {isLive ? `Live data · ${source}` : 'Live feed unavailable · showing snapshot'}
-          </div>
+          {/* No provider names here. The badge only appears when the live feed is down, so the snapshot is never passed off as live. */}
+          {!isLive && (
+            <div className="hero-rise inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 font-mono text-[11px] text-amber-200 backdrop-blur" style={delay(0.05)} role="status">
+              <span className="h-2 w-2 rounded-full bg-amber-400" aria-hidden="true" />
+              Live feed unavailable · showing snapshot
+            </div>
+          )}
 
           <Headline className="hero-rise text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-white" style={delay(0.15)}>
             The crypto market,
@@ -177,7 +175,7 @@ export const Hero: React.FC<HeroProps> = ({ tokens, stats, fearGreed, currency, 
           </Headline>
 
           <p className="hero-rise text-sm sm:text-base text-slate-300/90 leading-relaxed max-w-lg" style={delay(0.3)}>
-            Prices, market cap, volume and sentiment for the top 50 cryptocurrencies. Every figure links back to a named source — no hidden
+            Prices, market cap, volume and sentiment for the top 50 cryptocurrencies. Sources are named on every page — no hidden
             rankings, no paid placements.
           </p>
 
