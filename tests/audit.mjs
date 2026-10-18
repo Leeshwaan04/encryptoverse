@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { mockApi } from './fixtures.mjs';
+import { bucketOf } from '../src/shared/bucket.ts';
+import { parsePagePath } from '../src/shared/pages.ts';
 
 const require = createRequire(import.meta.url);
 const AXE = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
@@ -328,6 +330,82 @@ async function clearOverlay(p) {
     }
     await p.setViewportSize({ width: 1440, height: 900 });
     return { pass: bad.length === 0, detail: bad.join(' | ') || 'ok' };
+  });
+  // ---- programmatic pages (generated data under public/data, built by `npm run data`)
+  const dataDir = new URL('../public/data/', import.meta.url);
+  const sitemapPaths = (name) => [...fs.readFileSync(new URL(`../public/sitemaps/${name}.xml`, import.meta.url), 'utf8').matchAll(/<loc>https:\/\/encryptoverse\.com([^<]+)</g)].map((m) => m[1]);
+  const manifest = JSON.parse(fs.readFileSync(new URL('manifest.json', dataDir), 'utf8'));
+  await check('Pages', 'Generated data is consistent: buckets, sitemaps and routes agree', async () => {
+    const problems = [];
+    const coinFiles = fs.readdirSync(new URL('coins/', dataDir)).filter((f) => f.endsWith('.json'));
+    let recs = 0;
+    for (const f of coinFiles) {
+      const bucket = JSON.parse(fs.readFileSync(new URL(`coins/${f}`, dataDir), 'utf8'));
+      for (const slug of Object.keys(bucket)) {
+        recs++;
+        if (bucketOf(slug) + '.json' !== f) problems.push(`coin ${slug} is in ${f}, expected ${bucketOf(slug)}.json`);
+      }
+    }
+    if (recs !== manifest.coins.total) problems.push(`coin records ${recs} != manifest ${manifest.coins.total}`);
+    const counts = { coins: manifest.coins.indexable, protocols: manifest.protocols.indexable, chains: manifest.chains.indexable, stablecoins: manifest.stablecoins.indexable, exchanges: manifest.exchanges.indexable };
+    for (const [name, n] of Object.entries(counts)) if (sitemapPaths(name).length !== n) problems.push(`${name}.xml has ${sitemapPaths(name).length}, manifest says ${n}`);
+    let total = 0;
+    for (const name of ['coins', 'hubs', 'protocols', 'chains', 'stablecoins', 'exchanges', 'convert-fiat', 'convert-pairs']) {
+      const paths = sitemapPaths(name);
+      total += paths.length;
+      if (paths.length > 45000) problems.push(`${name}.xml near the 50,000 URL limit`);
+      const bad = paths.filter((_, i) => i % 7 === 0).filter((x) => !parsePagePath(x));
+      if (bad.length) problems.push(`${name}.xml has ${bad.length} paths the router cannot parse, e.g. ${bad[0]}`);
+      if (new Set(paths).size !== paths.length) problems.push(`${name}.xml has duplicate URLs`);
+    }
+    return { pass: problems.length === 0 && total >= 25000, detail: problems.join(' | ') || `${recs} coin records, ${total} sitemap URLs (>= 25,000)` };
+  });
+  const sampleProtocol = sitemapPaths('protocols')[2];
+  const deadCoin = (() => {
+    for (const f of fs.readdirSync(new URL('coins/', dataDir)).filter((x) => x.endsWith('.json'))) {
+      const b = JSON.parse(fs.readFileSync(new URL(`coins/${f}`, dataDir), 'utf8'));
+      const hit = Object.values(b).find((c) => (c.p ?? 0) > 0 && !(c.m > 0) && !(c.v > 0));
+      if (hit) return hit.s;
+    }
+    return null;
+  })();
+  await check('Pages', 'Every page family renders: one h1, own title, no NaN, no overflow', async () => {
+    const bad = [];
+    for (const path of ['/coin/pepe', '/coins', '/coins/3', sampleProtocol, '/defi/protocols', '/defi/chain/ethereum', '/defi/chains', '/stablecoins/tether', '/stablecoins', '/exchange/binance', '/exchanges', '/convert/bitcoin-to-usd', '/convert/bitcoin-to-ethereum', '/convert']) {
+      await p.goto(BASE + path.slice(1), { waitUntil: 'networkidle' });
+      await p.waitForTimeout(700);
+      const r = await p.evaluate(() => ({ h1: document.querySelectorAll('h1').length, title: document.title, text: document.body.innerText, over: document.documentElement.scrollWidth - document.documentElement.clientWidth, canon: document.querySelector('link[rel=canonical]')?.href }));
+      if (r.h1 !== 1) bad.push(`${path}: h1=${r.h1}`);
+      if (/NaN|undefined|Infinity|\[object/.test(r.text)) bad.push(`${path}: NaN/undefined text`);
+      if (r.over > 0) bad.push(`${path}: overflow ${r.over}`);
+      if (!r.title.includes('Encryptoverse') || r.title === 'Encryptoverse | Live Crypto Prices & Fear and Greed Index') bad.push(`${path}: generic title "${r.title}"`);
+      if (r.canon !== 'https://encryptoverse.com' + path) bad.push(`${path}: canonical ${r.canon}`);
+    }
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return { pass: bad.length === 0, detail: bad.join(' | ') || 'all 14 sampled pages ok' };
+  });
+  await check('Pages', 'Converter page recalculates from the typed amount', async () => {
+    await p.goto(BASE + 'convert/bitcoin-to-usd', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(700);
+    const one = await p.locator('main p[aria-live=polite]').innerText();
+    await p.locator('#amount').fill('2');
+    await p.waitForTimeout(200);
+    const two = await p.locator('main p[aria-live=polite]').innerText();
+    const n = (t) => Number(t.replace(/[^0-9.]/g, ''));
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return { pass: n(one) > 0 && Math.abs(n(two) - 2 * n(one)) / n(one) < 0.001, detail: `1 BTC=${one}, 2 BTC=${two}` };
+  });
+  await check('Pages', 'Dead coins are noindex; unknown pages show a not-found view', async () => {
+    if (!deadCoin) return { pass: true, detail: 'no dead coin in this data build' };
+    await p.goto(BASE + 'coin/' + deadCoin, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(700);
+    const robots = await p.locator('meta[name=robots]').getAttribute('content');
+    await p.goto(BASE + 'defi/protocol/definitely-not-a-protocol', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(700);
+    const nf = /Page not found/i.test(await p.locator('h1').innerText());
+    const nfRobots = await p.locator('meta[name=robots]').getAttribute('content');
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return { pass: /noindex/.test(robots) && nf && /noindex/.test(nfRobots), detail: `dead=${deadCoin} robots=${robots}; notFoundView=${nf} robots=${nfRobots}` };
   });
   await check('Routing', 'Old ?tab= links redirect to the new path', async () => {
     await p.goto(BASE + '?tab=defi', { waitUntil: 'networkidle' });

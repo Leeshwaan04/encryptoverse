@@ -3,6 +3,8 @@
 // are hit at most once per TTL per colo, regardless of visitor count.
 
 export interface Env {
+  /** Cloudflare Pages static-asset binding, used to read the /data JSON written by the data build. */
+  ASSETS?: { fetch(input: Request | string): Promise<Response> };
   /** Optional CoinGecko Demo/Pro key. Set with: wrangler pages secret put COINGECKO_API_KEY */
   COINGECKO_API_KEY?: string;
 }
@@ -26,6 +28,7 @@ const JSON_HEADERS = {
 const CACHE_PARAMS: Record<string, string[]> = {
   '/api/chart': ['currency', 'days', 'id', 'symbol'],
   '/api/markets': ['currency'],
+  '/api/coin': ['slug'],
 };
 
 /** Canonical, attacker-proof cache key: path + allow-listed params only, sorted and lower-cased. */

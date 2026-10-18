@@ -3,7 +3,9 @@
 //  - real 404s for paths that do not exist (the SPA shell would otherwise answer 200 "soft 404" for everything),
 //  - per-page <title>, description, canonical, robots, social tags, JSON-LD and crawler-readable fallback content
 //    in the initial HTML, because link-preview bots and many crawlers never run JavaScript.
-import { ROUTE_TABLE, SITE_URL, coinIdFromPath, coinMeta, documentTitle, type RouteMeta } from '../src/config/seo';
+import { ROUTE_TABLE, SITE_URL, coinMeta, documentTitle, type RouteMeta } from '../src/config/seo';
+import { parsePagePath } from '../src/shared/pages';
+import { resolvePage, type Assets } from './_providers/pageData';
 import { coinFacts, topCoins, type MarketCoin } from './_providers/coinMeta';
 import { fallbackHtml, jsonLd } from './_providers/seoHtml';
 
@@ -21,6 +23,7 @@ declare const HTMLRewriter: new () => Rewriter;
 interface MiddlewareCtx {
   request: Request;
   next: () => Promise<Response>;
+  env: { ASSETS?: Assets };
 }
 
 const redirect = (to: URL) => Response.redirect(to.toString(), 301);
@@ -54,18 +57,29 @@ export const onRequest = async (ctx: MiddlewareCtx): Promise<Response> => {
   let coins: MarketCoin[] | null = null;
   let facts: string[] = [];
 
-  const coinId = coinIdFromPath(path);
-  if (!meta && coinId) {
-    coins = await topCoins(url.origin);
-    const coin = coins?.find((c) => c.id === coinId);
-    if (coin) {
-      const f = coinFacts(coin);
-      meta = coinMeta(f);
-      facts = [f.rank ? `Market cap rank: #${f.rank}` : '', f.price ? `Price: ${f.price}` : '', f.marketCap ? `Market cap: ${f.marketCap}` : '', f.change24h ? `24h change: ${f.change24h}` : ''].filter(Boolean);
-    } else if (coins) {
-      status = 404; // the list loaded and this id is not in it
-    } else {
-      meta = coinMeta({ id: coinId, name: coinId.replace(/-/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()), symbol: coinId.slice(0, 5) });
+  let heading: string | undefined;
+  let links: [string, string][] = [];
+  const route = meta ? null : parsePagePath(path);
+  if (route && ctx.env.ASSETS) {
+    // The ten live top coins keep their live-price description; every other page comes from the static data build.
+    if (route.kind === 'coin') {
+      const live = (await topCoins(url.origin))?.find((c) => c.id === route.slug);
+      if (live) {
+        const f = coinFacts(live);
+        meta = coinMeta(f);
+        facts = [f.rank ? `Market cap rank: #${f.rank}` : '', f.price ? `Price: ${f.price}` : '', f.marketCap ? `Market cap: ${f.marketCap}` : '', f.change24h ? `24h change: ${f.change24h}` : ''].filter(Boolean);
+      }
+    }
+    const page = await resolvePage(ctx.env.ASSETS, url.origin, route);
+    if (!page && !meta) {
+      status = 404;
+    } else if (page) {
+      links = page.links;
+      heading = page.info.heading;
+      if (!meta) {
+        meta = { path, title: page.info.title, description: page.info.description, noindex: page.info.noindex };
+        facts = page.info.facts;
+      }
     }
   } else if (!meta) {
     status = 404; // not a page we serve: a real 404 that the app still renders (and rewrites to the home view)
@@ -89,8 +103,8 @@ export const onRequest = async (ctx: MiddlewareCtx): Promise<Response> => {
     .on('meta[property="og:url"]', attr('content', canonical))
     .on('meta[name="twitter:title"]', attr('content', title))
     .on('meta[name="twitter:description"]', attr('content', page.description))
-    .on('head', { element: (el) => void (notFound || el.append(jsonLd(page, page.title), { html: true })) })
-    .on('#root', { element: (el) => void el.setInnerContent(fallbackHtml(page, { coins, facts }), { html: true }) })
+    .on('head', { element: (el) => void (notFound || el.append(jsonLd(page, heading ?? page.title), { html: true })) })
+    .on('#root', { element: (el) => void el.setInnerContent(fallbackHtml(page, { coins, facts, heading, links }), { html: true }) })
     .transform(res);
 
   if (!notFound) return rewritten;

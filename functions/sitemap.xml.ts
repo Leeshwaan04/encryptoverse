@@ -1,19 +1,32 @@
-import { INFO_ROUTES, SITE_URL, TAB_ROUTES, coinPath } from '../src/config/seo';
-import { topCoins } from './_providers/coinMeta';
+import { SITE_URL } from '../src/config/seo';
+import type { Env } from './_lib';
 
-// GET|HEAD /sitemap.xml -> static routes plus one URL per coin currently in the top-50 list. Watchlist is personal and left out.
-export const onRequest = async (ctx: { request: Request }): Promise<Response> => {
+// GET|HEAD /sitemap.xml -> a sitemap INDEX. Core pages come from /sitemap-core.xml; each programmatic page family
+// has its own static sitemap (written by the data build) so no single file nears the 50,000-URL limit.
+export const onRequest = async (ctx: { request: Request; env: Env }): Promise<Response> => {
   if (ctx.request.method !== 'GET' && ctx.request.method !== 'HEAD') return new Response(null, { status: 405, headers: { Allow: 'GET, HEAD' } });
   const origin = new URL(ctx.request.url).origin;
-  const statics = [
-    ...Object.entries(TAB_ROUTES).filter(([id]) => id !== 'watchlist').map(([, m]) => m.path),
-    ...Object.values(INFO_ROUTES).map((m) => m.path),
-  ];
-  const coins = (await topCoins(origin)) ?? [];
-  const paths = [...statics, ...coins.map((c) => coinPath(c.id))];
+  const names = ['/sitemap-core.xml'];
+  try {
+    const res = await ctx.env.ASSETS?.fetch(new Request(`${origin}/data/manifest.json`));
+    if (res?.ok) {
+      const m = (await res.json()) as Record<string, unknown>;
+      const add = (key: string, file: string) => m[key] && names.push(`/sitemaps/${file}`);
+      add('coins', 'coins.xml');
+      add('hubs', 'hubs.xml');
+      add('protocols', 'protocols.xml');
+      add('chains', 'chains.xml');
+      add('stablecoins', 'stablecoins.xml');
+      add('exchanges', 'exchanges.xml');
+      add('convert', 'convert-fiat.xml');
+      add('convert', 'convert-pairs.xml');
+    }
+  } catch {
+    // data not built: the index lists only the core sitemap
+  }
   const xml =
-    '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    paths.map((p) => `  <url><loc>${SITE_URL}${p}</loc></url>\n`).join('') +
-    '</urlset>\n';
+    '<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    names.map((n) => `  <sitemap><loc>${SITE_URL}${n}</loc></sitemap>\n`).join('') +
+    '</sitemapindex>\n';
   return new Response(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
 };

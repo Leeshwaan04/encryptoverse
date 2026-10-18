@@ -86,6 +86,23 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSelectTab, isLive 
                 </li>
               ))}
             </ul>
+            <h2 className="pt-3 font-bold uppercase tracking-wider text-[11px] text-amber-100">Explore</h2>
+            <ul className="space-y-2">
+              {([
+                ['/coins', 'All coins by rank'],
+                ['/defi/protocols', 'DeFi protocols'],
+                ['/defi/chains', 'Blockchains by TVL'],
+                ['/stablecoins', 'Stablecoins'],
+                ['/exchanges', 'Exchanges'],
+                ['/convert', 'Crypto converter'],
+              ] as const).map(([to, label]) => (
+                <li key={to}>
+                  <a href={to} onClick={go(to)} className={linkCls}>
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </nav>
 
           {/* Company */}

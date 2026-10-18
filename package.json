@@ -10,7 +10,9 @@
     "preview": "vite preview --port 4173 --strictPort",
     "test:qa": "node tests/audit.mjs http://localhost:4173/",
     "test:security": "node tests/pentest.mjs http://localhost:4173/",
-    "test": "npm run test:qa && npm run test:security"
+    "test": "npm run test:qa && npm run test:security",
+    "data": "node scripts/build-data.mjs",
+    "prebuild": "node scripts/ensure-data.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.57.0",

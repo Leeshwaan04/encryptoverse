@@ -10,6 +10,12 @@
 - [News](https://encryptoverse.com/news): headlines linked to the original publishers
 - [Converter](https://encryptoverse.com/converter): crypto and fiat conversion
 
+## Data pages (generated from free public data, refreshed every few hours)
+- [All cryptocurrencies by rank](https://encryptoverse.com/coins): about 15,000 coins, with a page per coin at /coin/<slug>
+- [DeFi protocols by TVL](https://encryptoverse.com/defi/protocols): about 8,700 protocols, pages at /defi/protocol/<slug>
+- [Blockchains by TVL](https://encryptoverse.com/defi/chains), [stablecoins](https://encryptoverse.com/stablecoins), [exchanges](https://encryptoverse.com/exchanges)
+- [Crypto converter hub](https://encryptoverse.com/convert): coin-to-currency and coin-to-coin pages at /convert/<from>-to-<to>
+
 ## Trust
 - [Methodology & data sources](https://encryptoverse.com/methodology): where each number comes from, refresh rates and limitations
 - [About](https://encryptoverse.com/about)

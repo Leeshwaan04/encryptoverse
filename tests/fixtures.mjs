@@ -81,6 +81,17 @@ export async function mockApi(page, { fail = false, status = 200 } = {}) {
   await page.route(/assets\.coingecko\.com|googleapis\.com|gstatic\.com/, (r) =>
     r.fulfill({ status: 200, contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64') })
   );
+  // The edge functions the programmatic pages call (they only exist behind Cloudflare, not under `vite preview`).
+  await page.route(/\/api\/coin\?/, (r) => {
+    if (fail) return r.abort();
+    return r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ fetchedAt: new Date().toISOString(), source: 'CoinLore', data: { slug: 'x', p: 70000, m: 1.4e12, v: 3e10, h1: 0.1, h24: 1.2, d7: -2.5, c: 19e6, t: 19e6, x: 21e6, r: 1, markets: [{ ex: 'ExampleX', pair: 'BTC/USDT', p: 70010, v: 1.2e9 }] } }),
+    });
+  });
+  await page.route(/\/api\/rates$/, (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ fetchedAt: new Date().toISOString(), source: 'ECB via Frankfurter', data: { date: '2026-10-17', rates: { usd: 1, eur: 0.92, gbp: 0.79, inr: 84, jpy: 150 } } }) })
+  );
   await page.route(/api\.alternative\.me/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fng) }));
   await page.route(/api\.coingecko\.com/, (r) => {
     if (fail) return r.abort();

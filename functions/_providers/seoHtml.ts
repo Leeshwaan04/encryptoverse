@@ -13,14 +13,15 @@ const NAV = [
   ...Object.values(INFO_ROUTES).map((m) => link(m.path, m.title)),
 ].join('');
 
-export function fallbackHtml(meta: RouteMeta, opts: { coins?: MarketCoin[] | null; facts?: string[] } = {}): string {
+export function fallbackHtml(meta: RouteMeta, opts: { coins?: MarketCoin[] | null; facts?: string[]; heading?: string; links?: [string, string][] } = {}): string {
   const coins = opts.coins?.length
     ? `<h2>Top cryptocurrencies by market cap</h2><ol>${opts.coins.map((c) => link(coinPath(c.id), `${c.name} (${c.symbol.toUpperCase()})`)).join('')}</ol>`
     : '';
+  const related = opts.links?.length ? `<h2>Related</h2><ul>${opts.links.map(([p, l]) => link(p, l)).join('')}</ul>` : '';
   const facts = opts.facts?.length ? `<ul>${opts.facts.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : '';
   return (
-    `<main id="seo-fallback"><h1>${esc(meta.path === '/' ? 'Encryptoverse: the crypto market in one clear view' : meta.title)}</h1>` +
-    `<p>${esc(meta.description)}</p>${facts}${coins}` +
+    `<main id="seo-fallback"><h1>${esc(opts.heading ?? (meta.path === '/' ? 'Encryptoverse: the crypto market in one clear view' : meta.title))}</h1>` +
+    `<p>${esc(meta.description)}</p>${facts}${coins}${related}` +
     `<nav aria-label="Site pages"><ul>${NAV}</ul></nav>` +
     `<p>Prices are informational only and not financial advice. Data sources are listed on the methodology page.</p></main>`
   );

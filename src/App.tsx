@@ -18,6 +18,8 @@ import { Footer } from './components/Footer';
 import { Hero } from './components/Hero';
 import { InfoPage } from './pages/InfoPage';
 import { pageForPath } from './pages/InfoPages';
+import { DataPage } from './pages/DataPages';
+import { parsePagePath } from './shared/pages';
 import { cryptoTokens, globalMarketStats, type CryptoToken } from './data/cryptoData';
 import {
   fetchFearGreed,
@@ -83,7 +85,7 @@ function App() {
   // A URL the server answered with 404 (unknown path): the app shows the markets view but must stay out of search results.
   const [landedOnUnknown] = useState(() => {
     const p = window.location.pathname.replace(/\/+$/, '') || '/';
-    return !(p in ROUTE_TABLE) && !coinIdFromPath(p);
+    return !(p in ROUTE_TABLE) && !parsePagePath(p);
   });
   // True while the coin modal was opened by an in-app push, so closing it can pop that entry instead of stacking another.
   const modalPushed = useRef(false);
@@ -146,15 +148,21 @@ function App() {
     void fetchFearGreed().then(setFearGreed);
   }, []);
 
+  // Programmatic pages (/coin/<any coin>, /defi/protocol/<slug>, /convert/..., hubs) render as standalone pages.
+  // A top-50 coin keeps its modal over the markets table; every other coin is a standalone page.
+  const parsedRoute = infoPage ? null : parsePagePath(path.replace(/\/+$/, '') || '/');
+  const pageRoute = parsedRoute && !(parsedRoute.kind === 'coin' && tokens.some((t) => t.id === parsedRoute.slug)) ? parsedRoute : null;
+  const standalone = Boolean(infoPage || pageRoute);
+
   // A coin id that is not in the live top-50 list has nothing to show, so the URL falls back to the tab.
   const knownCoinId = selectedCoinId && (!isLive || tokens.some((t) => t.id === selectedCoinId)) ? selectedCoinId : null;
 
   useEffect(() => {
-    if (!infoPage) writeUrl({ tab: activeTab, coin: knownCoinId, currency }, false);
-  }, [activeTab, knownCoinId, currency, infoPage]);
+    if (!standalone) writeUrl({ tab: activeTab, coin: knownCoinId, currency }, false);
+  }, [activeTab, knownCoinId, currency, standalone]);
 
   useEffect(() => {
-    if (infoPage) return;
+    if (standalone) return;
     const coin = knownCoinId ? tokens.find((t) => t.id === knownCoinId) : undefined;
     applyRouteMeta(
       coin
@@ -169,7 +177,7 @@ function App() {
           ? { ...TAB_ROUTES[activeTab], noindex: true }
           : TAB_ROUTES[activeTab],
     );
-  }, [activeTab, infoPage, knownCoinId, tokens, isLive, currency, landedOnUnknown]);
+  }, [activeTab, standalone, knownCoinId, tokens, isLive, currency, landedOnUnknown]);
 
   useEffect(() => {
     const onPop = () => {
@@ -186,6 +194,17 @@ function App() {
 
   /** Open one of the static info pages. */
   const navigateInfo = (to: string) => {
+    const target = parsePagePath(to.split('?')[0]);
+    if (target?.kind === 'coin' && tokens.some((t) => t.id === target.slug)) {
+      // A top-50 coin opens its modal over the markets view.
+      window.history.pushState(null, '', to);
+      setPath(to);
+      setActiveTab('markets');
+      setSelectedCoinId(target.slug);
+      modalPushed.current = true;
+      window.scrollTo({ top: 0 });
+      return;
+    }
     window.history.pushState(null, '', to);
     setPath(to);
     setSelectedCoinId(null);
@@ -193,8 +212,8 @@ function App() {
   };
 
   const selectTab = (tab: TabId) => {
-    if (infoPage) {
-      // Leaving an info page: go back to the app on the chosen tab.
+    if (standalone) {
+      // Leaving an info or data page: go back to the app on the chosen tab.
       window.history.pushState(null, '', tabPath(tab));
       setPath(tabPath(tab));
       setActiveTab(tab);
@@ -286,7 +305,7 @@ function App() {
         network={walletNetwork}
       />
 
-      {!infoPage && activeTab === 'markets' && (
+      {!standalone && activeTab === 'markets' && (
         <Hero
           tokens={tokens}
           stats={marketStats}
@@ -303,7 +322,9 @@ function App() {
       <main id="main" className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {infoPage && <InfoPage page={infoPage} onNavigate={(to) => (to === '/' ? selectTab('markets') : navigateInfo(to))} />}
 
-        {!infoPage && activeTab === 'markets' && (
+        {pageRoute && <DataPage route={pageRoute} nav={(to) => (to === '/' ? selectTab('markets') : navigateInfo(to))} />}
+
+        {!standalone && activeTab === 'markets' && (
           <div className="space-y-8">
             <MarketHighlights
               tokens={tokens}
@@ -341,15 +362,15 @@ function App() {
           </div>
         )}
 
-        {!infoPage && activeTab === 'icodrops' && <TokenSalesGuide />}
+        {!standalone && activeTab === 'icodrops' && <TokenSalesGuide />}
 
-        {!infoPage && activeTab === 'trending' && (
+        {!standalone && activeTab === 'trending' && (
           <TrendingMoversView tokens={tokens} currency={currency} onSelectToken={openToken} />
         )}
 
-        {!infoPage && activeTab === 'defi' && <DefiView />}
+        {!standalone && activeTab === 'defi' && <DefiView />}
 
-        {!infoPage && activeTab === 'watchlist' && (
+        {!standalone && activeTab === 'watchlist' && (
           <PortfolioWatchlist
             watchlist={watchlist}
             tokens={tokens}
@@ -360,9 +381,9 @@ function App() {
           />
         )}
 
-        {!infoPage && activeTab === 'news' && <CoinDeskNews />}
+        {!standalone && activeTab === 'news' && <CoinDeskNews />}
 
-        {!infoPage && activeTab === 'converter' && (
+        {!standalone && activeTab === 'converter' && (
           <CryptoConverter tokens={tokens} currency={currency} isLive={isLive} />
         )}
       </main>
