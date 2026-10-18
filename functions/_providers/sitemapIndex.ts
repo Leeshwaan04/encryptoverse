@@ -3,6 +3,11 @@ import type { Env } from '../_lib';
 
 // Builds the sitemap INDEX served at /sitemap.xml (and at the legacy /sitemap_index.xml, which Search Console already knows). Core pages come from /sitemap-core.xml; each programmatic page family
 // has its own static sitemap (written by the data build) so no single file nears the 50,000-URL limit.
+// The converter pages (about 17,000 coin-to-currency and coin-to-coin pages) are real calculators but are the pages most
+// likely to be judged thin by search engines. They are served and linked, but NOT announced in the index until the core
+// pages have been indexed and reviewed in Search Console. Set to true to announce them.
+const ANNOUNCE_CONVERTER_SITEMAPS = false;
+
 export const sitemapIndex = async (ctx: { request: Request; env: Env }): Promise<Response> => {
   if (ctx.request.method !== 'GET' && ctx.request.method !== 'HEAD') return new Response(null, { status: 405, headers: { Allow: 'GET, HEAD' } });
   const origin = new URL(ctx.request.url).origin;
@@ -18,8 +23,10 @@ export const sitemapIndex = async (ctx: { request: Request; env: Env }): Promise
       add('chains', 'chains.xml');
       add('stablecoins', 'stablecoins.xml');
       add('exchanges', 'exchanges.xml');
-      add('convert', 'convert-fiat.xml');
-      add('convert', 'convert-pairs.xml');
+      if (ANNOUNCE_CONVERTER_SITEMAPS) {
+        add('convert', 'convert-fiat.xml');
+        add('convert', 'convert-pairs.xml');
+      }
     }
   } catch {
     // data not built: the index lists only the core sitemap
