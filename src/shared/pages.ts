@@ -123,7 +123,13 @@ export const qty = (n: number | null | undefined): string => (n === null || n ==
 
 /** A coin with no market cap and no volume is a stale listing: the page exists but is kept out of search results. */
 export const coinIsSubstantive = (c: CoinRec): boolean => (c.p ?? 0) > 0 && ((c.m ?? 0) > 0 || (c.v ?? 0) > 0);
-export const protocolIsSubstantive = (p: ProtocolRec): boolean => (p.t ?? 0) > 0 && Boolean(p.d);
+/** Centralised-exchange reserves are listed by DefiLlama but are not DeFi protocols, so they are never ranked or indexed as such. */
+export const isCexCategory = (k: string | null): boolean => k === 'CEX';
+export const protocolIsSubstantive = (p: ProtocolRec): boolean => (p.t ?? 0) > 0 && Boolean(p.d) && !isCexCategory(p.k);
+
+/** A ranking page is only worth indexing if at least half of its rows carry real data (market cap / TVL above zero). */
+export const listPageIsSubstantive = (rows: unknown[][], valueIndex: number): boolean =>
+  rows.length > 0 && rows.filter((r) => typeof r[valueIndex] === 'number' && (r[valueIndex] as number) > 0).length / rows.length >= 0.5;
 export const chainIsSubstantive = (c: ChainRec): boolean => (c.t ?? 0) > 0 && c.tp.length > 0;
 export const stableIsSubstantive = (s: StableRec): boolean => (s.cs ?? 0) > 0;
 export const exchangeIsSubstantive = (e: ExchangeRec): boolean => (e.v ?? 0) > 0;
@@ -167,7 +173,7 @@ export function coinInfo(c: CoinRec): PageInfo {
   };
 }
 
-export function coinListInfo(page: number, total: number): PageInfo {
+export function coinListInfo(page: number, total: number, rows?: unknown[][]): PageInfo {
   const first = (page - 1) * LIST_PER_PAGE + 1;
   const last = Math.min(page * LIST_PER_PAGE, total);
   return {
@@ -175,7 +181,7 @@ export function coinListInfo(page: number, total: number): PageInfo {
     heading: `Cryptocurrencies ranked ${first}–${last}`,
     description: `Prices, market cap and 24-hour change for the cryptocurrencies ranked ${first} to ${last} by market cap, with links to each coin's page.`,
     facts: [],
-    noindex: false,
+    noindex: rows ? !listPageIsSubstantive(rows, 6) : false,
     related: [],
   };
 }
@@ -185,7 +191,9 @@ export function protocolInfo(p: ProtocolRec): PageInfo {
   return {
     title: brand(`${shortName(p.n)} TVL, Chains & Stats`),
     heading: `${p.n}${p.y ? ` (${isUpper(p.y)})` : ''}: TVL and stats`,
-    description: good
+    description: isCexCategory(p.k)
+      ? `${p.n} is a centralised exchange. DefiLlama tracks its reported reserves, which are not DeFi total value locked. Chains and reserve figures are shown for reference.`
+      : good
       ? `${p.n} is a ${p.k ?? 'DeFi'} protocol with ${usd(p.t, true)} total value locked across ${p.nc} chain${p.nc === 1 ? '' : 's'}. TVL changes, chain breakdown and links, from DefiLlama.`
       : `${p.n}${p.k ? ` is listed as ${p.k}` : ''}. Chains, links and the latest value-locked figures where DefiLlama tracks them.`,
     facts: [
@@ -262,7 +270,7 @@ export function convertInfo(from: ConvertCoin, to: { code: string; name: string 
   };
 }
 
-export function protocolListInfo(page: number, total: number): PageInfo {
+export function protocolListInfo(page: number, total: number, rows?: unknown[][]): PageInfo {
   const first = (page - 1) * LIST_PER_PAGE + 1;
   const last = Math.min(page * LIST_PER_PAGE, total);
   return {
@@ -270,7 +278,7 @@ export function protocolListInfo(page: number, total: number): PageInfo {
     heading: `DeFi protocols ranked ${first}–${last} by TVL`,
     description: `DeFi protocols ranked ${first} to ${last} by total value locked, with category and 24-hour TVL change, from DefiLlama.`,
     facts: [],
-    noindex: false,
+    noindex: rows ? !listPageIsSubstantive(rows, 3) : false,
     related: [['/defi', 'DeFi overview']],
   };
 }

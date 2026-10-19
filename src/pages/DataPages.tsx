@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ExternalLink, Info } from 'lucide-react';
 import {
-  FIAT, LIST_PER_PAGE, chainInfo, convertCoinInfo, jumpPages, chainListInfo, coinInfo, coinIsSubstantive, coinListInfo, convertHubInfo, convertInfo, exchangeInfo,
+  FIAT, LIST_PER_PAGE, isCexCategory, chainInfo, convertCoinInfo, jumpPages, chainListInfo, coinInfo, coinIsSubstantive, coinListInfo, convertHubInfo, convertInfo, exchangeInfo,
   exchangeListInfo, pathOf, pct, protocolInfo, protocolListInfo, qty, stableInfo, stableListInfo, usd,
   type PageInfo, type PageRoute,
 } from '../shared/pages';
@@ -16,7 +16,7 @@ type Nav = (to: string) => void;
 // ------------------------------------------------------------------------------------------------ primitives
 const plain = (e: React.MouseEvent) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
-const L: React.FC<{ to: string; nav: Nav; className?: string; children: React.ReactNode }> = ({ to, nav, className = 'text-cyan-300 hover:text-cyan-200 underline decoration-cyan-300/50 underline-offset-2 hover:decoration-cyan-200', children }) => (
+const L: React.FC<{ to: string; nav: Nav; className?: string; children: React.ReactNode }> = ({ to, nav, className = 'text-cyan-300 hover:text-cyan-200 underline decoration-cyan-300/50 underline-offset-2 hover:decoration-cyan-200 inline-block py-1', children }) => (
   <a
     href={to}
     onClick={(e) => {
@@ -32,11 +32,11 @@ const L: React.FC<{ to: string; nav: Nav; className?: string; children: React.Re
 
 const Crumbs: React.FC<{ nav: Nav; trail: [string, string][]; current: string }> = ({ nav, trail, current }) => (
   <nav aria-label="Breadcrumb" className="text-xs text-slate-400 flex flex-wrap gap-x-1.5">
-    <L to="/" nav={nav} className="hover:text-cyan-300">Home</L>
+    <L to="/" nav={nav} className="inline-block py-1.5 hover:text-cyan-300">Home</L>
     {trail.map(([to, label]) => (
       <React.Fragment key={to}>
         <span aria-hidden="true">/</span>
-        <L to={to} nav={nav} className="hover:text-cyan-300">{label}</L>
+        <L to={to} nav={nav} className="inline-block py-1.5 hover:text-cyan-300">{label}</L>
       </React.Fragment>
     ))}
     <span aria-hidden="true">/</span>
@@ -118,9 +118,9 @@ const SourceNote: React.FC<{ nav: Nav; source: string; live?: boolean; generated
 export function infoFor(p: LoadedPage): PageInfo {
   switch (p.kind) {
     case 'coin': return coinInfo(p.coin);
-    case 'coinList': return coinListInfo(p.page, p.total);
+    case 'coinList': return coinListInfo(p.page, p.total, p.rows);
     case 'protocol': return protocolInfo(p.protocol);
-    case 'protocolList': return protocolListInfo(p.page, p.total);
+    case 'protocolList': return protocolListInfo(p.page, p.total, p.rows);
     case 'chain': return chainInfo(p.chain);
     case 'chainList': return chainListInfo();
     case 'stable': return stableInfo(p.stable);
@@ -155,7 +155,7 @@ const CoinView: React.FC<{ p: Extract<LoadedPage, { kind: 'coin' }>; nav: Nav; m
       <Crumbs nav={nav} trail={[['/coins', 'Cryptocurrencies']]} current={c.n} />
       <header className="space-y-2">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{c.n} <span className="text-slate-400 text-xl font-semibold">{sym}</span> price</h1>
-        <p className="text-sm text-slate-300">Ranked #{c.r} by market cap.{live ? ' Figures update every two minutes.' : ''}</p>
+        <p className="text-sm text-slate-300">Ranked #{c.r} by market cap.{live ? ' Live figures from CoinLore, cached for up to 15 minutes. Reload to refresh.' : ''}</p>
       </header>
       {!active && <Notice>This coin shows little or no recorded trading activity, so the figures below may be stale. They are the last values reported by the data source.</Notice>}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -292,6 +292,11 @@ const ProtocolView: React.FC<{ p: Extract<LoadedPage, { kind: 'protocol' }>; nav
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{x.n}{x.y ? <span className="text-slate-400 text-xl font-semibold"> {x.y.toUpperCase()}</span> : null}: TVL and stats</h1>
         {x.k && <p className="text-sm text-slate-300">Category: {x.k}</p>}
       </header>
+      {isCexCategory(x.k) && (
+        <Notice>
+          {x.n} is a centralised exchange, not a DeFi protocol. DefiLlama tracks the reserves it reports, which are not on-chain DeFi value and are not included in DeFi rankings or chain totals.
+        </Notice>
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Total value locked" value={usd(x.t, true)} />
         <Stat label="TVL 24h" value={<Change v={x.c1d} />} />
@@ -406,7 +411,7 @@ const ExchangeView: React.FC<{ p: Extract<LoadedPage, { kind: 'exchange' }>; nav
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="24h volume" value={usd(e.v, true)} />
         <Stat label="Active pairs" value={e.ap ?? 'n/a'} />
-        <Stat label="Country" value={e.co ?? 'n/a'} />
+        <Stat label="Country (as reported by CoinLore)" value={e.co ?? 'n/a'} />
       </div>
       {e.u && <p className="text-sm"><a href={e.u} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 text-cyan-300 hover:text-cyan-200">Official website <ExternalLink className="w-3 h-3" aria-hidden="true" /></a></p>}
       <Section title="Other exchanges">
@@ -424,6 +429,24 @@ const ExchangeView: React.FC<{ p: Extract<LoadedPage, { kind: 'exchange' }>; nav
 
 // ------------------------------------------------------------------------------------------------ converters
 const AMOUNTS = [1, 5, 10, 50, 100, 500, 1000];
+
+/**
+ * Parse what a person types into a number, without ever guessing silently:
+ * "0.5", "0,5" (decimal comma), "1,000" and "1,234.56" are accepted; anything ambiguous or invalid returns an error.
+ */
+export function parseAmount(raw: string): { value: number | null; error: string | null } {
+  const t = raw.trim().replace(/\s/g, '');
+  if (t === '') return { value: null, error: 'Enter an amount.' };
+  let n: string;
+  if (/^\d+(\.\d+)?$/.test(t) || /^\.\d+$/.test(t)) n = t;
+  else if (/^\d+,\d{1,2}$/.test(t)) n = t.replace(',', '.'); // decimal comma, e.g. 0,5
+  else if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)) n = t.replace(/,/g, ''); // thousands separators, e.g. 1,000
+  else return { value: null, error: 'Enter a plain number, for example 0.5 or 1,000.' };
+  const v = Number(n);
+  if (!Number.isFinite(v) || v < 0) return { value: null, error: 'Enter a positive number.' };
+  if (v > 1e15) return { value: null, error: 'That amount is too large.' };
+  return { value: v, error: null };
+}
 
 const ConvertView: React.FC<{ p: Extract<LoadedPage, { kind: 'convert' }>; nav: Nav; manifest: Manifest | null }> = ({ p, nav, manifest }) => {
   const [amount, setAmount] = useState('1');
@@ -466,7 +489,7 @@ const ConvertView: React.FC<{ p: Extract<LoadedPage, { kind: 'convert' }>; nav: 
     }
     return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: n >= 1 ? 4 : 8 }).format(n)} ${toSym}`;
   };
-  const amt = Number(amount);
+  const parsed = parseAmount(amount);
   const live = Boolean(liveFrom) && (fiat ? Boolean(rates) || fiat === 'usd' : Boolean(liveTo));
 
   return (
@@ -482,11 +505,14 @@ const ConvertView: React.FC<{ p: Extract<LoadedPage, { kind: 'convert' }>; nav: 
           id="amount"
           inputMode="decimal"
           value={amount}
-          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, '').slice(0, 18))}
+          onChange={(e) => setAmount(e.target.value.slice(0, 24))}
+          aria-invalid={Boolean(parsed.error)}
+          aria-describedby={parsed.error ? 'amount-error' : undefined}
           className="w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2.5 text-lg text-white tabular-nums focus:outline-none focus:border-cyan-500"
         />
+        {parsed.error && <p id="amount-error" role="alert" className="text-sm text-amber-300">{parsed.error}</p>}
         <p className="text-2xl font-bold text-white tabular-nums" aria-live="polite">
-          {unit && Number.isFinite(amt) ? fmt(amt * unit) : 'n/a'}
+          {unit && parsed.value !== null ? fmt(parsed.value * unit) : unit ? '—' : 'n/a'}
         </p>
       </div>
       {unit && (
@@ -590,6 +616,23 @@ const ConvertCoinView: React.FC<{ p: Extract<LoadedPage, { kind: 'convertCoin' }
   );
 };
 
+export const NotFoundView: React.FC<{ nav: Nav }> = ({ nav }) => {
+  useEffect(() => {
+    applyRouteMeta({ path: '/', title: 'Page not found | Encryptoverse', description: 'This page does not exist.', noindex: true, exact: true });
+  }, []);
+  return (
+    <div className="max-w-xl mx-auto py-16 text-center space-y-4">
+      <h1 className="text-2xl font-bold text-white">Page not found</h1>
+      <p className="text-sm text-slate-300">We have no page at this address. It may be mistyped or may have been removed.</p>
+      <p className="text-sm space-x-4">
+        <L to="/" nav={nav}>Home</L>
+        <L to="/coins" nav={nav}>All cryptocurrencies</L>
+        <L to="/defi/protocols" nav={nav}>DeFi protocols</L>
+      </p>
+    </div>
+  );
+};
+
 // ------------------------------------------------------------------------------------------------ switchboard
 export const DataPage: React.FC<{ route: PageRoute; nav: Nav }> = ({ route, nav }) => {
   const key = pathOf(route);
@@ -611,6 +654,11 @@ export const DataPage: React.FC<{ route: PageRoute; nav: Nav }> = ({ route, nav 
 
   useEffect(() => {
     if (page) {
+      const h = document.querySelector('main h1');
+      if (h instanceof HTMLElement && !document.querySelector('[role=dialog]')) {
+        h.tabIndex = -1;
+        h.focus({ preventScroll: true });
+      }
       const info = infoFor(page);
       applyRouteMeta({ path: key, title: info.title, description: info.description, noindex: info.noindex, exact: true });
     } else if (missing) {
@@ -629,7 +677,7 @@ export const DataPage: React.FC<{ route: PageRoute; nav: Nav }> = ({ route, nav 
   }
   if (!page) {
     return (
-      <div className="space-y-4" aria-busy="true" aria-live="polite">
+      <div className="space-y-4 min-h-[85vh]" aria-busy="true" aria-live="polite">
         <div className="h-8 w-64 rounded-lg bg-slate-800/60 animate-pulse" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[0, 1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-slate-800/40 animate-pulse" />)}

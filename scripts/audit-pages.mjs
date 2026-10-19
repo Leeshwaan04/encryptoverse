@@ -33,6 +33,9 @@ for (const dir of ['coins', 'protocols', 'stablecoins']) {
     }
   }
 }
+// Ranking pages that fail the substance rule are served (noindex) but absent from the sitemaps; audit them too.
+for (let i = 1; i <= manifest.coins.listPages; i++) all.add(i === 1 ? '/coins' : `/coins/${i}`);
+for (let i = 1; i <= manifest.protocols.listPages; i++) all.add(i === 1 ? '/defi/protocols' : `/defi/protocols/${i}`);
 for (const f of readdirSync(new URL('data/chains/', PUB))) all.add(`/defi/chain/${f.replace('.json', '')}`);
 for (const e of JSON.parse(readFileSync(new URL('data/exchanges.json', PUB), 'utf8'))) all.add(`/exchange/${e.s}`);
 

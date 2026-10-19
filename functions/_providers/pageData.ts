@@ -65,7 +65,7 @@ export async function resolvePage(assets: Assets, origin: string, route: PageRou
       const links: [string, string][] = rows.map(([s, n, y]) => [`/coin/${s}`, `${n} (${y.toUpperCase()})`]);
       const pages = manifest.coins.listPages;
       for (const p of jumpPages(route.page, pages)) if (p !== route.page) links.push([pathOf({ kind: 'coinList', page: p }), `Page ${p}`]);
-      return { info: coinListInfo(route.page, manifest.coins.total), links };
+      return { info: coinListInfo(route.page, manifest.coins.total, rows), links };
     }
     case 'protocol': {
       const p = await bucketRecord<ProtocolRec>(assets, origin, 'protocols', route.slug);
@@ -80,7 +80,7 @@ export async function resolvePage(assets: Assets, origin: string, route: PageRou
       if (!rows || !manifest?.protocols) return null;
       const links: [string, string][] = rows.map(([s, n]) => [`/defi/protocol/${s}`, n]);
       for (const p of jumpPages(route.page, manifest.protocols.listPages)) if (p !== route.page) links.push([pathOf({ kind: 'protocolList', page: p }), `Page ${p}`]);
-      return { info: protocolListInfo(route.page, manifest.protocols.total), links };
+      return { info: protocolListInfo(route.page, manifest.protocols.total, rows), links };
     }
     case 'chain': {
       const c = await read<ChainRec>(assets, origin, `/data/chains/${route.slug}.json`);

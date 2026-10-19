@@ -42,6 +42,12 @@ export const onRequest = async (ctx: MiddlewareCtx): Promise<Response> => {
     return redirect(url);
   }
 
+  // Page 1 of a ranking is the bare list URL; /coins/1 would be a second copy of it.
+  if (url.pathname === '/coins/1' || url.pathname === '/defi/protocols/1') {
+    url.pathname = url.pathname.slice(0, -2);
+    return redirect(url);
+  }
+
   const res = await ctx.next();
   const isHtml = res.headers.get('content-type')?.includes('text/html');
 

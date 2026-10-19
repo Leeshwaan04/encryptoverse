@@ -5,7 +5,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { geckoId } from '../functions/_providers/ids.ts';
 import { bucketOf } from '../src/shared/bucket.ts';
 import {
-  CONVERT_FIAT_COINS, CONVERT_PAIR_COINS, FIAT,
+  CONVERT_FIAT_COINS, CONVERT_PAIR_COINS, FIAT, isCexCategory, listPageIsSubstantive,
   chainIsSubstantive, coinIsSubstantive, exchangeIsSubstantive, protocolIsSubstantive, stableIsSubstantive,
 } from '../src/shared/pages.ts';
 
@@ -100,10 +100,13 @@ async function buildCoins(manifest) {
   const PER = 100;
   await mkdir(new URL('coins/list/', OUT), { recursive: true });
   const listPages = Math.ceil(coins.length / PER);
+  const goodCoinLists = [];
   for (let i = 0; i < listPages; i++) {
     const slice = coins.slice(i * PER, (i + 1) * PER).map((c) => [c.s, c.n, c.y, c.r, c.p, c.h24, c.m]);
     await writeFile(new URL(`coins/list/${i + 1}.json`, OUT), JSON.stringify(slice));
+    if (listPageIsSubstantive(slice, 6)) goodCoinLists.push(i + 1);
   }
+  manifest._goodCoinLists = goodCoinLists;
 
   // A page is "substantive" (indexable, in the sitemap) only when it has real data; the rules live in src/shared/pages.ts.
   const good = coins.filter(coinIsSubstantive);
@@ -169,10 +172,15 @@ async function buildDefi(manifest) {
   const pnb = await writeBuckets('protocols/', recs, (r) => r.s);
   const goodP = recs.filter(protocolIsSubstantive);
   await mkdir(new URL('protocols/list/', OUT), { recursive: true });
-  const pListPages = Math.ceil(recs.length / 100);
+  const ranked = recs.filter((r) => !isCexCategory(r.k)); // centralised-exchange reserves are not DeFi
+  const pListPages = Math.ceil(ranked.length / 100);
+  const goodProtoLists = [];
   for (let i = 0; i < pListPages; i++) {
-    await writeFile(new URL(`protocols/list/${i + 1}.json`, OUT), JSON.stringify(recs.slice(i * 100, (i + 1) * 100).map((r) => [r.s, r.n, r.k, r.t, r.c1d])));
+    const rows = ranked.slice(i * 100, (i + 1) * 100).map((r) => [r.s, r.n, r.k, r.t, r.c1d]);
+    await writeFile(new URL(`protocols/list/${i + 1}.json`, OUT), JSON.stringify(rows));
+    if (listPageIsSubstantive(rows, 3)) goodProtoLists.push(i + 1);
   }
+  manifest._goodProtoLists = goodProtoLists;
 
   // Chains: TVL plus the protocols that hold the most value on each one (derived from the protocol data above).
   const bySlug = new Map();
@@ -181,6 +189,7 @@ async function buildDefi(manifest) {
     const slug = slugify(c.name);
     if (!slug || bySlug.has(slug)) continue;
     const topProtocols = recs
+      .filter((r) => !isCexCategory(r.k))
       .map((r) => [r, r.tc.find(([name]) => name === c.name)?.[1] ?? 0])
       .filter(([, v]) => v > 0)
       .sort((a, b) => b[1] - a[1])
@@ -207,7 +216,7 @@ async function buildDefi(manifest) {
   await mkdir(SITEMAPS, { recursive: true });
   await writeFile(new URL('protocols.xml', SITEMAPS), xmlUrls(goodP.map((r) => `/defi/protocol/${r.s}`)));
   await writeFile(new URL('chains.xml', SITEMAPS), xmlUrls(goodC.map((c) => `/defi/chain/${c.s}`)));
-  manifest.protocols = { total: recs.length, indexable: goodP.length, buckets: pnb, listPages: pListPages };
+  manifest.protocols = { total: ranked.length, records: recs.length, indexable: goodP.length, buckets: pnb, listPages: pListPages };
   manifest.chains = { total: chainRecs.length, indexable: goodC.length };
   console.log(`protocols: ${recs.length} records, ${goodP.length} substantive | chains: ${chainRecs.length}, ${goodC.length} substantive`);
 }
@@ -264,6 +273,20 @@ async function buildStablesAndExchanges(manifest) {
   console.log(`stablecoins: ${stables.length} (${goodS.length} substantive) | exchanges: ${exRecs.length} (${goodE.length})`);
 }
 
+async function buildRates() {
+  // Snapshot of ECB reference rates so converter pages still work if the live rates endpoint is unavailable.
+  try {
+    const body = await getJson('https://api.frankfurter.dev/v1/latest?base=USD');
+    const rates = {};
+    for (const [k, v] of Object.entries(body.rates ?? {})) if (typeof v === 'number' && v > 0) rates[k.toLowerCase()] = v;
+    if (Object.keys(rates).length < 10) throw new Error('too few rates');
+    await writeFile(new URL('rates.json', OUT), JSON.stringify({ date: body.date, rates }));
+    console.log(`rates: ${Object.keys(rates).length} currencies (${body.date})`);
+  } catch (e) {
+    console.warn(`rates snapshot skipped: ${e.message}`);
+  }
+}
+
 const manifest = { generatedAt: new Date().toISOString() };
 if (!only) {
   await rm(OUT, { recursive: true, force: true });
@@ -273,14 +296,20 @@ await mkdir(OUT, { recursive: true });
 if (!only || only === 'coins') await buildCoins(manifest);
 if (!only || only === 'defi') await buildDefi(manifest);
 if (!only || only === 'stables') await buildStablesAndExchanges(manifest);
+if (!only || only === 'stables') await buildRates();
 if (!only || only === 'coins' || only === 'defi') {
-  const hubs = ['/coins', ...Array.from({ length: Math.max(0, (manifest.coins?.listPages ?? 1) - 1) }, (_, i) => `/coins/${i + 2}`)];
-  if (manifest.protocols) hubs.push('/defi/protocols', ...Array.from({ length: Math.max(0, manifest.protocols.listPages - 1) }, (_, i) => `/defi/protocols/${i + 2}`), '/defi/chains');
+  const asPath = (base, n) => (n === 1 ? base : `${base}/${n}`);
+  const hubs = (manifest._goodCoinLists ?? [1]).map((n) => asPath('/coins', n));
+  if (manifest.protocols) hubs.push(...(manifest._goodProtoLists ?? [1]).map((n) => asPath('/defi/protocols', n)), '/defi/chains');
   hubs.push('/stablecoins', '/exchanges', '/convert', ...(manifest._convertHubs ?? []));
   await mkdir(SITEMAPS, { recursive: true });
   await writeFile(new URL('hubs.xml', SITEMAPS), xmlUrls(hubs));
   manifest.hubs = hubs.length;
 }
 delete manifest._convertHubs;
+manifest.coins && (manifest.coins.indexableListPages = manifest._goodCoinLists?.length ?? 0);
+manifest.protocols && (manifest.protocols.indexableListPages = manifest._goodProtoLists?.length ?? 0);
+delete manifest._goodCoinLists;
+delete manifest._goodProtoLists;
 await writeFile(new URL('manifest.json', OUT), JSON.stringify(manifest));
 console.log('done', JSON.stringify(manifest));

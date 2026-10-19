@@ -44,17 +44,36 @@ export async function loadLiveCoin(slug: string): Promise<LiveCoin | null> {
   try {
     const r = await fetch(`/api/coin?slug=${encodeURIComponent(slug)}`, { headers: { Accept: 'application/json' } });
     if (!r.ok || !(r.headers.get('content-type') ?? '').includes('json')) return null;
-    return ((await r.json()) as Envelope<LiveCoin>).data ?? null;
+    const d = ((await r.json()) as Envelope<Partial<LiveCoin>>).data;
+    // Trust nothing: a malformed or all-empty payload must not replace the snapshot or crash the page.
+    if (!d || typeof d !== 'object' || typeof d.p !== 'number' || !Number.isFinite(d.p) || d.p <= 0) return null;
+    return { ...d, markets: Array.isArray(d.markets) ? d.markets.filter((m) => m && typeof m.ex === 'string') : [] } as LiveCoin;
   } catch {
     return null;
   }
 }
 
+const cleanRates = (rates: unknown): Record<string, number> | null => {
+  if (!rates || typeof rates !== 'object') return null;
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(rates as Record<string, unknown>)) if (typeof v === 'number' && Number.isFinite(v) && v > 0) out[k.toLowerCase()] = v;
+  return Object.keys(out).length ? out : null;
+};
+
+/** Currency rates per 1 USD: the live endpoint first, then the snapshot written by the data build. */
 export async function loadRates(): Promise<Record<string, number> | null> {
   try {
     const r = await fetch('/api/rates', { headers: { Accept: 'application/json' } });
-    if (!r.ok || !(r.headers.get('content-type') ?? '').includes('json')) return null;
-    return ((await r.json()) as Envelope<{ rates: Record<string, number> }>).data?.rates ?? null;
+    if (r.ok && (r.headers.get('content-type') ?? '').includes('json')) {
+      const live = cleanRates(((await r.json()) as Envelope<{ rates: unknown }>).data?.rates);
+      if (live) return { usd: 1, ...live };
+    }
+  } catch {
+    // fall through to the snapshot
+  }
+  try {
+    const snap = cleanRates((await loadJson<{ rates: unknown }>('/data/rates.json')).rates);
+    return snap ? { usd: 1, ...snap } : null;
   } catch {
     return null;
   }

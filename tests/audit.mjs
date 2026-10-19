@@ -431,6 +431,82 @@ async function clearOverlay(p) {
     await p.goto(BASE, { waitUntil: 'networkidle' });
     return { pass: problems.length === 0, detail: problems.join(' | ') || 'policy, methodology and 4 page types ok' };
   });
+  // ---- regressions found by the independent functional QA pass
+  await check('Pages', 'Converter input: decimal comma, thousands separator and invalid text are handled explicitly', async () => {
+    const problems = [];
+    await p.goto(BASE + 'convert/bitcoin-to-usd', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(600);
+    const out = async (v) => { await p.locator('#amount').fill(v); await p.waitForTimeout(120); return (await p.locator('main p[aria-live=polite]').innerText()).replace(/[^0-9.]/g, ''); };
+    const one = Number(await out('1'));
+    const half = Number(await out('0,5'));
+    const thousand = Number(await out('1,000'));
+    if (Math.abs(half - one / 2) > 0.01 * one) problems.push(`"0,5" gave ${half} (1 BTC = ${one})`);
+    if (Math.abs(thousand - one * 1000) > 0.001 * one * 1000) problems.push(`"1,000" gave ${thousand}`);
+    for (const bad of ['abc', '', '1.2.3', '-5']) {
+      await p.locator('#amount').fill(bad);
+      await p.waitForTimeout(120);
+      const msg = await p.locator('#amount-error').count();
+      const invalid = await p.locator('#amount').getAttribute('aria-invalid');
+      if (!msg || invalid !== 'true') problems.push(`"${bad}" not flagged (error=${msg}, aria-invalid=${invalid})`);
+    }
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return { pass: problems.length === 0, detail: problems.join(' | ') || 'comma, thousands and 4 invalid inputs ok' };
+  });
+  await check('Pages', 'Search from a data page goes to the markets table; nav does not mark Cryptocurrencies current', async () => {
+    await p.goto(BASE + 'coins/2', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(600);
+    const cur = await p.locator('header nav[aria-label=Primary] a[aria-current=page]').count();
+    await p.locator('#search-desktop').fill('bitcoin');
+    await p.waitForTimeout(700);
+    const url = new URL(p.url()).pathname;
+    const rows = await p.locator('tbody tr').count();
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return { pass: cur === 0 && url === '/' && rows > 0, detail: `currentOnDataPage=${cur} afterSearch=${url} rows=${rows}` };
+  });
+  await check('Pages', 'Unrecognised URLs show a not-found page, not the home page', async () => {
+    const bad = [];
+    for (const path of ['coin/Bitcoin', 'coins/0', 'defi/protocol/Aave-V3', 'convert/BITCOIN-to-usd', 'totally/unknown']) {
+      await p.goto(BASE + path, { waitUntil: 'networkidle' });
+      await p.waitForTimeout(500);
+      const h1 = await p.locator('h1').first().innerText();
+      const robots = await p.locator('meta[name=robots]').getAttribute('content');
+      if (!/Page not found/i.test(h1) || !/noindex/.test(robots)) bad.push(`${path}: h1="${h1.slice(0, 30)}" robots=${robots}`);
+    }
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return { pass: bad.length === 0, detail: bad.join(' | ') || '5 URLs show the not-found page with noindex' };
+  });
+  await check('Honesty', 'A coin outside the live top 50 never shows bundled sample figures in a modal', async () => {
+    const { c: cf, p: pf } = await ctx({ width: 1280, height: 800 }, {}, { fail: true });
+    try {
+      await pf.goto(BASE + 'coin/arbitrum', { waitUntil: 'networkidle' });
+      await pf.waitForTimeout(1500);
+      const modal = await pf.locator('[role=dialog]').count();
+      const txt = await pf.locator('body').innerText();
+      const sample = /\$68,450|sample figures/i.test(txt) && modal > 0;
+      return { pass: modal === 0 && !sample && (await pf.locator('h1').first().innerText()).toLowerCase().includes('arbitrum'), detail: `modal=${modal}` };
+    } finally {
+      await cf.close();
+    }
+  });
+  await check('Pages', 'Coin page copy does not claim two-minute updates; fiat rates fall back to the snapshot', async () => {
+    await p.goto(BASE + 'coin/pepe', { waitUntil: 'networkidle' });
+    await p.waitForTimeout(800);
+    const t = await p.locator('main').innerText();
+    const copyOk = !/update every two minutes/i.test(t);
+    const rates = JSON.parse(fs.readFileSync(new URL('rates.json', dataDir), 'utf8'));
+    const { c: cr, p: pr } = await ctx({ width: 1280, height: 800 });
+    let lead = '';
+    try {
+      await pr.route('**/api/rates', (r) => r.fulfill({ status: 500, body: 'x' }));
+      await pr.goto(BASE + 'convert/bitcoin-to-eur', { waitUntil: 'networkidle' });
+      await pr.waitForTimeout(800);
+      lead = await pr.locator('header p').first().innerText();
+    } finally {
+      await cr.close();
+    }
+    await p.goto(BASE, { waitUntil: 'networkidle' });
+    return { pass: copyOk && /1 BTC = /.test(lead) && Object.keys(rates.rates).length >= 10, detail: `copyOk=${copyOk} lead="${lead}"` };
+  });
   await check('Routing', 'Old ?tab= links redirect to the new path', async () => {
     await p.goto(BASE + '?tab=defi', { waitUntil: 'networkidle' });
     await p.waitForTimeout(500);

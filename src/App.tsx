@@ -18,7 +18,7 @@ import { Footer } from './components/Footer';
 import { Hero } from './components/Hero';
 import { InfoPage } from './pages/InfoPage';
 import { pageForPath } from './pages/InfoPages';
-import { DataPage } from './pages/DataPages';
+import { DataPage, NotFoundView } from './pages/DataPages';
 import { parsePagePath } from './shared/pages';
 import { cryptoTokens, globalMarketStats, type CryptoToken } from './data/cryptoData';
 import {
@@ -151,8 +151,13 @@ function App() {
   // Programmatic pages (/coin/<any coin>, /defi/protocol/<slug>, /convert/..., hubs) render as standalone pages.
   // A top-50 coin keeps its modal over the markets table; every other coin is a standalone page.
   const parsedRoute = infoPage ? null : parsePagePath(path.replace(/\/+$/, '') || '/');
-  const pageRoute = parsedRoute && !(parsedRoute.kind === 'coin' && tokens.some((t) => t.id === parsedRoute.slug)) ? parsedRoute : null;
-  const standalone = Boolean(infoPage || pageRoute);
+  // The modal is only used for coins in the LIVE top-50 list. The bundled sample list is never used to open a coin URL,
+  // because its figures are placeholders; until the live list arrives (or if it fails) the real data page is shown.
+  const pageRoute = parsedRoute && !(parsedRoute.kind === 'coin' && isLive && tokens.some((t) => t.id === parsedRoute.slug)) ? parsedRoute : null;
+  // F-12: a URL the router does not know gets a proper "not found" view instead of silently showing the home page.
+  const normalizedPath = path.replace(/\/+$/, '') || '/';
+  const unknownPath = !infoPage && !parsedRoute && normalizedPath !== '/' && !(normalizedPath in ROUTE_TABLE) && !NAV_TABS.some((t) => t.path === normalizedPath);
+  const standalone = Boolean(infoPage || pageRoute || unknownPath);
 
   // A coin id that is not in the live top-50 list has nothing to show, so the URL falls back to the tab.
   const knownCoinId = selectedCoinId && (!isLive || tokens.some((t) => t.id === selectedCoinId)) ? selectedCoinId : null;
@@ -195,7 +200,7 @@ function App() {
   /** Open one of the static info pages. */
   const navigateInfo = (to: string) => {
     const target = parsePagePath(to.split('?')[0]);
-    if (target?.kind === 'coin' && tokens.some((t) => t.id === target.slug)) {
+    if (target?.kind === 'coin' && isLive && tokens.some((t) => t.id === target.slug)) {
       // A top-50 coin opens its modal over the markets view.
       window.history.pushState(null, '', to);
       setPath(to);
@@ -248,7 +253,7 @@ function App() {
   // Search filters the market table, so typing anywhere brings that table into view.
   const onSearchChange = (q: string) => {
     setSearchQuery(q);
-    if (q && activeTab !== 'markets') selectTab('markets');
+    if (q && (standalone || activeTab !== 'markets')) selectTab('markets');
   };
 
   const toggleWatchlist = (tokenId: string) => {
@@ -295,7 +300,7 @@ function App() {
       />
 
       <Navbar
-        activeTab={activeTab}
+        activeTab={standalone ? null : activeTab}
         onSelectTab={selectTab}
         watchlistCount={watchlist.length}
         searchQuery={searchQuery}
@@ -322,6 +327,8 @@ function App() {
         {infoPage && <InfoPage page={infoPage} onNavigate={(to) => (to === '/' ? selectTab('markets') : navigateInfo(to))} />}
 
         {pageRoute && <DataPage route={pageRoute} nav={(to) => (to === '/' ? selectTab('markets') : navigateInfo(to))} />}
+
+        {unknownPath && <NotFoundView nav={(to) => (to === '/' ? selectTab('markets') : navigateInfo(to))} />}
 
         {!standalone && activeTab === 'markets' && (
           <div className="space-y-8">
@@ -387,7 +394,7 @@ function App() {
         )}
       </main>
 
-      {selectedToken && (
+      {selectedToken && !standalone && (
         <TokenDetailModal
           token={selectedToken}
           currency={currency}

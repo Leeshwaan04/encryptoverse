@@ -7,7 +7,8 @@ import { NAV_TABS, type TabId } from '../lib/navTabs';
 
 
 interface NavbarProps {
-  activeTab: TabId;
+  /** null on standalone pages (data, info, not-found), where no top-level tab is current. */
+  activeTab: TabId | null;
   onSelectTab: (tab: TabId) => void;
   watchlistCount: number;
   searchQuery: string;
