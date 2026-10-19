@@ -139,9 +139,14 @@ export function infoFor(p: LoadedPage): PageInfo {
 // ------------------------------------------------------------------------------------------------ coin
 const CoinView: React.FC<{ p: Extract<LoadedPage, { kind: 'coin' }>; nav: Nav; manifest: Manifest | null }> = ({ p, nav, manifest }) => {
   const [live, setLive] = useState<LiveCoin | null>(null);
+  const [liveDone, setLiveDone] = useState(false);
   useEffect(() => {
     let alive = true;
-    void loadLiveCoin(p.coin.s).then((l) => alive && setLive(l));
+    void loadLiveCoin(p.coin.s).then((l) => {
+      if (!alive) return;
+      setLive(l);
+      setLiveDone(true);
+    });
     return () => {
       alive = false;
     };
@@ -168,6 +173,12 @@ const CoinView: React.FC<{ p: Extract<LoadedPage, { kind: 'coin' }>; nav: Nav; m
         <Stat label="Max supply" value={v.x ? `${qty(v.x)} ${sym}` : 'n/a'} />
         <Stat label="Data" value={live ? 'Live' : 'Snapshot'} sub={live ? 'CoinLore' : manifest ? new Date(manifest.generatedAt).toLocaleString() : ''} />
       </div>
+      {!liveDone && (
+        // Reserves the table's height while live figures load, so the content below does not jump when it appears.
+        <Section title={`Where ${c.n} trades`}>
+          <div className="min-h-[26rem] rounded-xl border border-slate-800 bg-slate-900/30 animate-pulse" aria-hidden="true" />
+        </Section>
+      )}
       {live && live.markets.length > 0 && (
         <Section title={`Where ${c.n} trades`}>
           <Table head={['Exchange', 'Pair', 'Price (USD)', '24h volume']} caption={`Top markets for ${c.n}`}>
