@@ -89,6 +89,9 @@ function App() {
   });
   // True while the coin modal was opened by an in-app push, so closing it can pop that entry instead of stacking another.
   const modalPushed = useRef(false);
+  // True only when the visitor opened a coin from inside the app. A cold load of /coin/<slug> is always the standalone page, so it never
+  // swaps into the markets view when the live list arrives (that swap was a large layout shift).
+  const [modalFromClick, setModalFromClick] = useState(false);
 
   const [tokens, setTokens] = useState<CryptoToken[]>(cryptoTokens);
   const [marketStats, setMarketStats] = useState<typeof globalMarketStats>(globalMarketStats);
@@ -153,7 +156,7 @@ function App() {
   const parsedRoute = infoPage ? null : parsePagePath(path.replace(/\/+$/, '') || '/');
   // The modal is only used for coins in the LIVE top-50 list. The bundled sample list is never used to open a coin URL,
   // because its figures are placeholders; until the live list arrives (or if it fails) the real data page is shown.
-  const pageRoute = parsedRoute && !(parsedRoute.kind === 'coin' && isLive && tokens.some((t) => t.id === parsedRoute.slug)) ? parsedRoute : null;
+  const pageRoute = parsedRoute && !(parsedRoute.kind === 'coin' && modalFromClick && isLive && tokens.some((t) => t.id === parsedRoute.slug)) ? parsedRoute : null;
   // F-12: a URL the router does not know gets a proper "not found" view instead of silently showing the home page.
   const normalizedPath = path.replace(/\/+$/, '') || '/';
   const unknownPath = !infoPage && !parsedRoute && normalizedPath !== '/' && !(normalizedPath in ROUTE_TABLE) && !NAV_TABS.some((t) => t.path === normalizedPath);
@@ -187,6 +190,7 @@ function App() {
   useEffect(() => {
     const onPop = () => {
       modalPushed.current = false;
+      setModalFromClick(false);
       setPath(window.location.pathname);
       const s = readUrl();
       setActiveTab((prev) => s.tab ?? prev);
@@ -206,6 +210,7 @@ function App() {
       setPath(to);
       setActiveTab('markets');
       setSelectedCoinId(target.slug);
+      setModalFromClick(true);
       modalPushed.current = true;
       window.scrollTo({ top: 0 });
       return;
@@ -236,11 +241,13 @@ function App() {
   const openToken = (token: CryptoToken) => {
     writeUrl({ tab: activeTab, coin: token.id, currency }, true);
     modalPushed.current = true;
+    setModalFromClick(true);
     setSelectedCoinId(token.id);
   };
 
   const closeToken = () => {
     setSelectedCoinId(null);
+    setModalFromClick(false);
     if (modalPushed.current) {
       // Pop the entry that opened the modal, so Back does not reopen it.
       modalPushed.current = false;

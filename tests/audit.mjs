@@ -287,15 +287,16 @@ async function clearOverlay(p) {
     const back = new URL(p.url()).pathname === '/';
     return { pass: Boolean(href) && open && urlOk && /Price, Market Cap/.test(title) && back, detail: `href=${href} modal=${open} url=${urlOk} title="${title}" closedToHome=${back}` };
   });
-  await check('Routing', '/coin/<id> deep link opens the modal; unknown coin falls back safely', async () => {
+  await check('Routing', '/coin/<id> cold load is a standalone page (no swap to a modal); unknown coin shows not-found', async () => {
     await p.goto(BASE + 'coin/bitcoin', { waitUntil: 'networkidle' });
-    await p.waitForTimeout(900);
-    const open = (await p.locator('[role=dialog]').count()) > 0;
+    await p.waitForTimeout(1500);
+    const modal = (await p.locator('[role=dialog]').count()) > 0;
+    const h1 = await p.locator('h1').first().innerText();
     await p.goto(BASE + 'coin/definitely-not-a-coin', { waitUntil: 'networkidle' });
-    await p.waitForTimeout(1200);
-    const fellBack = (await p.locator('[role=dialog]').count()) === 0;
+    await p.waitForTimeout(900);
+    const nf = /Page not found/i.test(await p.locator('h1').first().innerText());
     await p.goto(BASE, { waitUntil: 'networkidle' });
-    return { pass: open && fellBack, detail: `deepLinkModal=${open} unknownHandled=${fellBack}` };
+    return { pass: !modal && /bitcoin/i.test(h1) && nf, detail: `modal=${modal} h1="${h1}" unknownNotFound=${nf}` };
   });
   await check('Routing', 'Closing the coin modal does not leave a Back entry that reopens it', async () => {
     await p.goto(BASE, { waitUntil: 'networkidle' });
