@@ -1,112 +1,81 @@
-# 📊 ENCRYPTOVERSE (`encryptoverse.com`)
+# Encryptoverse
 
-> **The Premier All-In-One Cryptocurrency Market Intelligence, Real-Time Price Analytics & ICO Drops Launchpad Radar.**  
-> A synthesized fusion of **CoinMarketCap**, **CoinGecko**, **CoinDesk Price**, and **ICO Drops**.
+An independent, read-only crypto market-data site at [encryptoverse.com](https://encryptoverse.com). It shows prices,
+market cap, volume, price history, sentiment, DeFi totals and news, and names the source of every figure. There are no
+accounts, no advertising, no affiliate links and no paid placements, and nothing on the site is financial advice.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Vite](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
-[![React](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
-[![Tailwind](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC.svg)](https://tailwindcss.com/)
 [![CI](https://github.com/Leeshwaan04/encryptoverse/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Leeshwaan04/encryptoverse/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
----
+## What is on the site
 
-## 🌟 The Encryptoverse Experience
+| Area | What it is | Source |
+|---|---|---|
+| Home and tabs | Top 50 coins, trending, DeFi overview, news, watchlist and portfolio (stored only in your browser), converter | CoinLore, DefiLlama, Coinbase candles, Frankfurter (ECB), alternative.me, CoinDesk and Cointelegraph feeds |
+| Coin pages | `/coin/<slug>` for about 15,000 coins, ranked lists at `/coins` | CoinLore |
+| DeFi pages | About 8,700 protocols, blockchains, stablecoins | DefiLlama |
+| Exchanges | `/exchange/<slug>` | CoinLore |
+| Converters | Coin to currency and coin to coin, `/convert/...` | CoinLore prices, ECB rates |
+| Token sales | A hand-written, sourced guide to public token sales (not a live feed) | Cited sources on the page |
+| Trust pages | About, methodology, editorial and corrections policy, risk disclosure, privacy, terms, contact | Written by hand |
 
-Encryptoverse brings together the best capabilities of the top four crypto market portals into a single, unified, ultra-fast web application:
+Pages with little or no real data (for example coins with no market cap and no trading volume) are served but marked
+`noindex` and left out of the sitemaps. The rules live in [`src/shared/pages.ts`](src/shared/pages.ts).
 
-1. **CoinMarketCap:** Real-time top cryptocurrency prices, 24h trading volume, circulating supply, market capitalization rankings, and 7-day sparkline charts.
-2. **CoinGecko:** Deep token analytics, Category filters (Layer 1, Layer 2, AI & Big Data, DeFi, Meme, DePIN, RWA), All-Time High (ATH) and All-Time Low (ATL) metrics, and real-time public market API integration with client-side caching.
-3. **CoinDesk Price & News:** Real-time macroeconomic news wire, Bitcoin ETF flow tracking, market sentiment analysis, and interactive timeframe price charts (1D, 7D, 1M, 1Y, ALL).
-4. **ICO Drops:** Comprehensive Web3 launchpad radar tracking Active Presales, Upcoming Whitelists, and Ended IDO/IEO offerings with historical ROI multipliers.
-5. **Web3 Multi-Wallet Connection:** Seamlessly connect MetaMask, Phantom, Coinbase Wallet, Rabby, or explore instantly with Sandbox Demo mode.
+## How it is built
 
----
+- **Front end:** React 19, TypeScript, Vite, Tailwind CSS v4. State that matters is in the URL (tab is the path).
+- **Edge layer:** Cloudflare Pages Functions in [`functions/`](functions). They proxy and cache the data APIs
+  (`/api/*`), and a middleware adds the right title, description, canonical, robots tag, structured data and
+  crawler-readable content to each page, plus real 404s and redirects.
+- **Data pages:** [`scripts/build-data.mjs`](scripts/build-data.mjs) pulls the free public APIs and writes static JSON
+  to `public/data` in 256 hashed buckets, plus the sitemaps in `public/sitemaps`. Both are generated and git-ignored.
+  CI rebuilds them before every deploy and every six hours. The hashing keeps the site far below Cloudflare Pages'
+  20,000-files-per-deployment limit.
+- **Shared logic:** [`src/shared/`](src/shared) is imported by the browser app, the edge middleware and the build
+  script, so URLs, titles and indexing rules cannot drift apart.
 
-## 🚀 Core Features & Modules
+## Run it locally
 
-### 1. 🌐 Global Market Ticker (Top Header Bar)
-- **Live CoinGecko Feed & Offline Fallback:** Live status badge indicating API connection, client cache status, and manual refresh controls.
-- **Global Market Cap:** Real-time market capitalization with 24h percentage movement.
-- **24h Trading Volume:** Aggregated exchange volume.
-- **Bitcoin & Ethereum Dominance:** Live dominance percentages.
-- **Ethereum Gas Tracker:** Fast/Standard gas fee in Gwei.
-- **Crypto Fear & Greed Index:** Real-time sentiment score (0 - 100) with visual gauge indicator.
-- **Multi-Currency Switcher:** Toggle prices between USD ($), EUR (€), GBP (£), BTC (₿), and ETH (Ξ).
-
-### 2. 📊 Cryptocurrencies Market Table
-- **Dynamic Category Filtering:** Instant zero-reload filtering across Layer 1, Layer 2, AI & Big Data, DeFi, Meme, DePIN, and RWA.
-- **Sortable Columns:** Rank, Name, Price, 1h %, 24h %, 7d %, 24h Volume, and Market Capitalization.
-- **Circulating vs Max Supply:** Visual progress bar tracking circulating supply against total caps.
-- **Interactive 7-Day Sparklines:** Color-coded mini SVG trend charts.
-- **Quick Watchlist Toggle:** Tap the star icon on any coin to instantly track it.
-
-### 3. 🔍 Deep Token Inspection Modal (CoinGecko / CoinDesk Style)
-- **Interactive Price Chart:** Switch between 1D, 7D, 1M, 1Y, and ALL timeframes with interactive hover tooltips.
-- **Supply & Valuation Statistics:** Circulating supply, max supply, fully diluted valuation (FDV), and volume/market cap ratios.
-- **ATH & ATL Meters:** Percentage drop from All-Time High and gain from All-Time Low with historical dates.
-- **Blockchain Links:** Direct links to official websites, whitepapers, and block explorers.
-
-### 4. 🚀 ICO Drops & Launchpad Radar (icodrops.com Clone)
-- **Active ICOs:** Live presales with fundraising progress bars, hard caps, token sale prices, and time remaining.
-- **Upcoming ICOs:** Whitelist registration deadlines, KYC requirements, fundraising targets, and interest hype ratings.
-- **Ended ICOs & Historical ROI:** Track past launches and all-time return on investment (e.g., 8.2x USD ROI).
-- **Multi-Chain Filtering:** Filter token offerings by Ethereum, Solana, Base, BNB Chain, Sui, and Arbitrum.
-
-### 5. 🦊 Web3 Wallet Modal & Manager
-- **Multi-Provider Support:** Detects and connects to MetaMask, Phantom, Coinbase Wallet, and Rabby.
-- **Sandbox Demo Wallet:** Instant 1-click test wallet with simulated test assets for immediate hands-on exploration.
-- **Network Switcher:** Switch between Ethereum, Arbitrum One, Base, Optimism, and Solana Mainnet.
-- **Account Dashboard:** Copy address, view on block explorer, and one-click disconnect.
-
-### 6. 📰 CoinDesk Market Wire & News
-- Breaking market headlines, regulatory policies, institutional inflows, and sector shifts.
-- Sentiment indicators (Bullish, Neutral, Bearish) and direct source links.
-
-### 7. ⭐ Watchlist & Portfolio Tracker
-- Manage favorite cryptocurrencies stored privately in your browser local storage.
-- Optional portfolio mode: input your token holdings to calculate total portfolio net worth and 24h profit and loss.
-
-### 8. 💱 Crypto Converter & Calculator
-- Instant multi-asset exchange calculator between cryptocurrencies and fiat currencies.
-
----
-
-## 🛠️ Quickstart & Local Setup
-
-### Prerequisites
-- Node.js v20+
-- npm or pnpm
-
-### Running Locally
+Requires Node 22.18 or newer (the data scripts import TypeScript directly).
 
 ```bash
-# Clone the repository
-git clone https://github.com/Leeshwaan04/encryptoverse.git
-cd encryptoverse
-
-# Install dependencies
 npm install
-
-# Start development server
-npm run dev
+npm run data        # about a minute: builds public/data and public/sitemaps (needed once, then as you like)
+npm run dev         # http://localhost:5173
 ```
 
-Open `http://localhost:5173` in your browser.
-
-### Quality Assurance & Linting
+Edge functions can be tried against a production build:
 
 ```bash
-# Fast Oxlint code analysis (0 errors, 0 warnings)
-npm run lint
-
-# TypeScript verification & Production build
 npm run build
+npx wrangler pages dev dist --port 8799
 ```
 
----
+## Checks
 
-## 📄 License
+```bash
+npm run lint          # oxlint
+npm run build         # type check and production build
+npm run audit:pages   # audits every generated page: titles, duplicates, thin content, indexing rules, links, orphans
+npm run preview &     # then:
+npm run test:qa       # end-to-end browser suite (Playwright)
+npm run test:security # client-side security suite
+```
+
+CI runs all of these on every push and deploys only if they pass.
+
+## Optional configuration
+
+`COINGECKO_API_KEY` (a Cloudflare Pages secret) is optional. Without it the site uses only keyless sources.
+
+## Policies
+
+How pages are produced and corrected is described on the site's
+[editorial policy](https://encryptoverse.com/editorial-policy) and
+[methodology](https://encryptoverse.com/methodology) pages. To report an error, open an issue on this repository.
+
+## License
 
 Source code is distributed under the **MIT License**. See `LICENSE` for more information.
 

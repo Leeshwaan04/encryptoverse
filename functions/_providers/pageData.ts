@@ -151,4 +151,11 @@ export async function resolvePage(assets: Assets, origin: string, route: PageRou
   }
 }
 
+/** Where a converter URL that no longer exists should point: its coin's hub, if that coin still has one. */
+export async function convertRedirect(assets: Assets, origin: string, route: PageRoute): Promise<string | null> {
+  if (route.kind !== 'convert') return null;
+  const order = await read<[string, string, string][]>(assets, origin, '/data/convert-coins.json');
+  return order?.some((r) => r[0] === route.from) ? `/convert/${route.from}` : null;
+}
+
 export const hasData = (route: PageRoute): boolean => dataUrls(route).length > 0;

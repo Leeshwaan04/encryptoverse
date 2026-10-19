@@ -68,7 +68,28 @@
       "Bash(curl -s https://encryptoverse.com/coins)",
       "Bash(grep -o 'overflow-x-auto rounded-xl border border-slate-800[^\"]*\"[^}]\\\\{0,80\\\\}' index-CCwTzk7n.js)",
       "Bash(curl -s -m 15 \"https://encryptoverse.com/api/coin?slug=bitcoin\")",
-      "Bash(curl -s -m 15 -i \"https://encryptoverse.com/api/coin?slug=nonexistent-zzz\")"
+      "Bash(curl -s -m 15 -i \"https://encryptoverse.com/api/coin?slug=nonexistent-zzz\")",
+      "Bash(timeout 20 head -40 README.md)",
+      "Bash(timeout 10 ls site)",
+      "Bash(timeout 10 ls cloudflare-worker fastify-service api)",
+      "Bash(timeout 10 cat vercel.json)",
+      "Bash(git -C /Users/sumitbagewadi/Documents/Brokerlens-India status --short)",
+      "Bash(git -C /Users/sumitbagewadi/Documents/Brokerlens-India grep -l 'aff-close\\\\|ad-close\\\\|data-ad-close\\\\|Dismiss this ad\\\\|Close this ad' -- . :!site/*/*/index.html :!site/*/index.html)",
+      "Bash(git -C /Users/sumitbagewadi/Documents/Brokerlens-India grep -n 'aff-close\\\\|ad-close\\\\|data-ad-close\\\\|dismiss\\\\|Close this ad' -- tests/qa_e2e.py)",
+      "Bash(curl -s -m 120 https://api.llama.fi/protocols -o protocols.json -w \"%{http_code} %{size_download}\\\\n\")",
+      "Bash(curl -s -m 60 https://api.llama.fi/v2/chains -o chains.json -w \"%{http_code} %{size_download}\\\\n\")",
+      "Bash(curl -s -m 60 \"https://stablecoins.llama.fi/stablecoins?includePrices=true\" -o stables.json -w \"%{http_code} %{size_download}\\\\n\")",
+      "Bash(curl -s -m 60 https://api.coinlore.net/api/exchanges/ -o exch.json -w \"%{http_code} %{size_download}\\\\n\")",
+      "Bash(curl -s -m 20 https://encryptoverse.com/data/manifest.json)",
+      "Bash(sed -i '$d' fuzz.mjs)",
+      "Bash(node --input-type=module)",
+      "Bash(curl -sS -A \"Googlebot/2.1 \\(+http://www.google.com/bot.html\\)\" -D h1.txt https://encryptoverse.com/coin/boysclub-coin -o boysclub.html)",
+      "Bash(node explore2.mjs)",
+      "Bash(curl -sI https://encryptoverse.com/coin/pepe)",
+      "Bash(sed -i 's/} catch \\(e\\) { return route.abort\\(\\); }/} catch \\(e\\) { console.error\\(\"ROUTE ERR\", url, e.message\\); return route.abort\\(\\); }/' lib.mjs)",
+      "Bash(node t0.mjs)",
+      "Bash(node crawl.mjs /defi/protocol/aave-v3 /defi/protocol/layerzero-v2 /defi/protocol/ssv-network /defi/protocol/morpho-blue /defi/protocol/scrubvault /defi/protocol/colorpool /defi/protocol/bush /defi/protocol/asymetrix-protocol /defi/protocol/sonic-market-liquidity-vault /defi/protocol/renegade /defi/protocol/nemesis-dao /defi/protocol/ponzi.market /defi/protocol/bnbminer-finance /defi/protocol/utopia /defi/protocol/binance-cex /defi/protocol/grape-finance /defi/protocol/position-exchange /defi/chain/ethereum /defi/chain/solana /defi/chain/shiden /defi/chain/op-mainnet /defi/chain/mtt-network /stablecoins/tether /stablecoins/usd-coin /stablecoins/terraclassicusd /stablecoins/rocky-usdr /stablecoins/real-usd /exchange/binance /exchange/websea /exchange/uniswap-v3 /exchange/bitmex /exchange/binance-dex /exchange/wazirx /defi/protocols /defi/protocols/87 /defi/chains /stablecoins /exchanges)",
+      "Bash(pkill -f crawl.mjs)"
     ]
   }
 }

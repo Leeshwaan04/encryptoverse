@@ -5,7 +5,7 @@
 //    in the initial HTML, because link-preview bots and many crawlers never run JavaScript.
 import { ROUTE_TABLE, SITE_URL, coinMeta, documentTitle, type RouteMeta } from '../src/config/seo';
 import { parsePagePath } from '../src/shared/pages';
-import { resolvePage, type Assets } from './_providers/pageData';
+import { convertRedirect, resolvePage, type Assets } from './_providers/pageData';
 import { coinFacts, topCoins, type MarketCoin } from './_providers/coinMeta';
 import { fallbackHtml, jsonLd } from './_providers/seoHtml';
 
@@ -78,6 +78,11 @@ export const onRequest = async (ctx: MiddlewareCtx): Promise<Response> => {
       }
     }
     const page = await resolvePage(ctx.env.ASSETS, url.origin, route);
+    if (!page && !meta) {
+      // A pair that dropped out of the published set when the rankings moved: send people to the coin's hub, not a dead end.
+      const to = await convertRedirect(ctx.env.ASSETS, url.origin, route);
+      if (to) return redirect(new URL(to, url.origin));
+    }
     if (page) {
       try {
         const m = await ctx.env.ASSETS.fetch(new Request(`${url.origin}/data/manifest.json`));
